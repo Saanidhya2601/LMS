@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Users {
+  id            String   @id @default(uuid())
+  full_name     String
+  email         String   @unique
+  password_hash String
+  role          String   @default("student")
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  // Relationships
+  courses       Courses[]        @relation("InstructorCourses")
+  enrollments   Enrollments[]
+  progress      LessonProgress[]
+}
+
+model Courses {
+  id            String   @id @default(uuid())
+  instructor_id String
+  users         Users    @relation("InstructorCourses", fields: [instructor_id], references: [id])
+  title         String
+  slug          String   @unique
+  description   String?
+  thumbnail_url String?
+  status        String   @default("draft")
+  category      String
+  level         String
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  // Relationships
+  modules       Modules[]
+  enrollments   Enrollments[]
+}
+
+model Modules {
+  id          String    @id @default(uuid())
+  course_id   String
+  course      Courses   @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  title       String
+  order       Int
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+
+  // Relationships
+  lessons     Lessons[]
+}
+
+model Lessons {
+  id          String    @id @default(uuid())
+  module_id   String
+  module      Modules   @relation(fields: [module_id], references: [id], onDelete: Cascade)
+  title       String
+  video_url   String?
+  content     String?   // For text-based lesson notes
+  order       Int
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+
+  // Relationships
+  progress    LessonProgress[]
+}
+
+model Enrollments {
+  id          String    @id @default(uuid())
+  user_id     String
+  user        Users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  course_id   String
+  course      Courses   @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  status      String    @default("active") // active, completed, dropped
+  created_at  DateTime  @default(now())
+
+  // A user can only enroll in a specific course once
+  @@unique([user_id, course_id])
+}
+
+model LessonProgress {
+  id          String    @id @default(uuid())
+  user_id     String
+  user        Users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  lesson_id   String
+  lesson      Lessons   @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+  is_completed Boolean  @default(false)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+
+  // A user can only have one progress record per lesson
+  @@unique([user_id, lesson_id])
+}
