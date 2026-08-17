@@ -4,6 +4,32 @@ import { Link } from "react-router-dom";
 
 const TWO_PI = Math.PI * 2;
 
+interface DotFieldProps {
+  dotRadius?: number;
+  dotSpacing?: number;
+  cursorRadius?: number;
+  cursorForce?: number;
+  bulgeOnly?: boolean;
+  bulgeStrength?: number;
+  glowRadius?: number;
+  sparkle?: boolean;
+  waveAmplitude?: number;
+  gradientFrom?: string;
+  gradientTo?: string;
+  glowColor?: string;
+}
+
+interface Dot {
+  ax: number;
+  ay: number;
+  sx: number;
+  sy: number;
+  vx: number;
+  vy: number;
+  x: number;
+  y: number;
+}
+
 const DotField = memo(function DotField({
   dotRadius = 1.5,
   dotSpacing = 14,
@@ -17,10 +43,10 @@ const DotField = memo(function DotField({
   gradientFrom = "rgba(99, 102, 241, 0.35)",
   gradientTo = "rgba(129, 140, 248, 0.18)",
   glowColor = "#312e81",
-}: any) {
+}: DotFieldProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const glowRef = useRef<SVGCircleElement>(null);
-  const dotsRef = useRef<any[]>([]);
+  const dotsRef = useRef<Dot[]>([]);
   const mouseRef = useRef({
     x: -9999,
     y: -9999,
@@ -32,7 +58,8 @@ const DotField = memo(function DotField({
   const sizeRef = useRef({ w: 0, h: 0, offsetX: 0, offsetY: 0 });
   const glowOpacity = useRef(0);
   const engagement = useRef(0);
-  const propsRef = useRef<any>({});
+  const propsRef = useRef<DotFieldProps>({} as DotFieldProps);
+
   propsRef.current = {
     dotRadius,
     dotSpacing,
@@ -45,6 +72,7 @@ const DotField = memo(function DotField({
     gradientFrom,
     gradientTo,
   };
+
   const rebuildRef = useRef<(() => void) | null>(null);
   const glowIdRef = useRef(
     `dot-field-glow-${Math.random().toString(36).slice(2, 9)}`,
@@ -68,12 +96,12 @@ const DotField = memo(function DotField({
 
     function buildDots(w: number, h: number) {
       const p = propsRef.current;
-      const step = p.dotRadius + p.dotSpacing;
+      const step = (p.dotRadius || 1.5) + (p.dotSpacing || 14);
       const cols = Math.floor(w / step);
       const rows = Math.floor(h / step);
       const padX = (w % step) / 2;
       const padY = (h % step) / 2;
-      const dots = new Array(rows * cols);
+      const dots: Dot[] = new Array(rows * cols);
       let idx = 0;
 
       for (let row = 0; row < rows; row++) {
@@ -89,10 +117,10 @@ const DotField = memo(function DotField({
     function drawStatic(w: number, h: number) {
       const p = propsRef.current;
       const dots = dotsRef.current;
-      const rad = p.dotRadius / 2;
+      const rad = (p.dotRadius || 1.5) / 2;
       const grad = ctx!.createLinearGradient(0, 0, w, h);
-      grad.addColorStop(0, p.gradientFrom);
-      grad.addColorStop(1, p.gradientTo);
+      grad.addColorStop(0, p.gradientFrom || "rgba(0,0,0,0)");
+      grad.addColorStop(1, p.gradientTo || "rgba(0,0,0,0)");
       ctx!.fillStyle = grad;
       ctx!.clearRect(0, 0, w, h);
       ctx!.beginPath();
@@ -181,14 +209,17 @@ const DotField = memo(function DotField({
       ctx!.clearRect(0, 0, w, h);
 
       const grad = ctx!.createLinearGradient(0, 0, w, h);
-      grad.addColorStop(0, p.gradientFrom);
-      grad.addColorStop(1, p.gradientTo);
+      grad.addColorStop(0, p.gradientFrom || "rgba(0,0,0,0)");
+      grad.addColorStop(1, p.gradientTo || "rgba(0,0,0,0)");
       ctx!.fillStyle = grad;
 
-      const cr = p.cursorRadius;
+      const cr = p.cursorRadius || 500;
       const crSq = cr * cr;
-      const rad = p.dotRadius / 2;
+      const rad = (p.dotRadius || 1.5) / 2;
       const isBulge = p.bulgeOnly;
+      const pBulgeStrength = p.bulgeStrength || 67;
+      const pCursorForce = p.cursorForce || 0.1;
+      const pWaveAmp = p.waveAmplitude || 0;
 
       ctx!.beginPath();
 
@@ -202,13 +233,13 @@ const DotField = memo(function DotField({
           const dist = Math.sqrt(distSq);
           if (isBulge) {
             const tt = 1 - dist / cr;
-            const push = tt * tt * p.bulgeStrength * eng;
+            const push = tt * tt * pBulgeStrength * eng;
             const angle = Math.atan2(dy, dx);
             d.sx += (d.ax - Math.cos(angle) * push - d.sx) * 0.15;
             d.sy += (d.ay - Math.sin(angle) * push - d.sy) * 0.15;
           } else {
             const angle = Math.atan2(dy, dx);
-            const move = (500 / dist) * (m.speed * p.cursorForce);
+            const move = (500 / dist) * (m.speed * pCursorForce);
             d.vx += Math.cos(angle) * -move;
             d.vy += Math.sin(angle) * -move;
           }
@@ -228,9 +259,9 @@ const DotField = memo(function DotField({
 
         let drawX = d.sx;
         let drawY = d.sy;
-        if (p.waveAmplitude > 0) {
-          drawY += Math.sin(d.ax * 0.03 + t) * p.waveAmplitude;
-          drawX += Math.cos(d.ay * 0.03 + t * 0.7) * p.waveAmplitude * 0.5;
+        if (pWaveAmp > 0) {
+          drawY += Math.sin(d.ax * 0.03 + t) * pWaveAmp;
+          drawX += Math.cos(d.ay * 0.03 + t * 0.7) * pWaveAmp * 0.5;
         }
 
         if (p.sparkle) {
@@ -323,10 +354,11 @@ const hexToRgb = (hex: string) => {
     b: parseInt(clean.slice(4, 6), 16),
   };
 };
-interface RGB{
-  r:number;
-  g:number;
-  b:number;
+
+interface RGB {
+  r: number;
+  g: number;
+  b: number;
 }
 
 const mixRgb = (from: RGB, to: RGB, amount: number) => ({
@@ -335,15 +367,17 @@ const mixRgb = (from: RGB, to: RGB, amount: number) => ({
   b: Math.round(from.b + (to.b - from.b) * amount),
 });
 
-const rgbToCss = (rgb: any) => `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+const rgbToCss = (rgb: RGB) => `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+
 const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
+
 const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 
 const resolveFontSize = (
-  value: any,
+  value: string | number,
   container: HTMLElement,
-  fontWeight: any,
+  fontWeight: string | number,
   fontFamily: string,
 ) => {
   if (typeof value === "number") return value;
@@ -370,6 +404,39 @@ const waitForFonts = async (font: string) => {
   await document.fonts.ready;
 };
 
+interface ParticleTextProps {
+  text?: string;
+  particleSize?: number;
+  density?: number;
+  color?: string;
+  highlightColor?: string;
+  scatter?: number;
+  gatherDuration?: number;
+  stagger?: number;
+  pointerRepel?: number;
+  repelRadius?: number;
+  idleDrift?: number;
+  trigger?: "mount" | "hover" | "click";
+  fontSize?: string | number;
+  fontWeight?: string | number;
+  fontFamily?: string;
+  glow?: boolean;
+}
+
+interface Particle {
+  x: number;
+  y: number;
+  startX: number;
+  startY: number;
+  targetX: number;
+  targetY: number;
+  size: number;
+  color: string;
+  seed: number;
+  depth: number;
+  delay: number;
+}
+
 function ParticleText({
   text = "Create Account",
   particleSize = 2,
@@ -387,7 +454,7 @@ function ParticleText({
   fontWeight = 800,
   fontFamily = "inherit",
   glow = true,
-}: any) {
+}: ParticleTextProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -399,7 +466,7 @@ function ParticleText({
     const ctx = canvas.getContext("2d");
     if (!ctx) return undefined;
 
-    let particles: any[] = [];
+    let particles: Particle[] = [];
     let animationFrame: number | null = null;
     let resizeFrame: number | null = null;
     let buildId = 0;
@@ -442,7 +509,7 @@ function ParticleText({
       gathering = true;
     };
 
-    const drawParticle = (particle: any) => {
+    const drawParticle = (particle: Particle) => {
       const size = particle.size;
       ctx.fillStyle = particle.color;
 
@@ -734,8 +801,15 @@ function ParticleText({
     };
 
     reduceMotionQuery?.addEventListener("change", handleReduceMotionChange);
-    canvas.addEventListener("pointerenter", handlePointerEnter as any);
-    canvas.addEventListener("pointermove", handlePointerMove as any);
+    // Explicit type casting to EventListener for standard DOM events
+    canvas.addEventListener(
+      "pointerenter",
+      handlePointerEnter as unknown as EventListener,
+    );
+    canvas.addEventListener(
+      "pointermove",
+      handlePointerMove as unknown as EventListener,
+    );
     canvas.addEventListener("pointerleave", handlePointerLeave);
     canvas.addEventListener("click", handleClick);
 
@@ -750,8 +824,14 @@ function ParticleText({
         "change",
         handleReduceMotionChange,
       );
-      canvas.removeEventListener("pointerenter", handlePointerEnter as any);
-      canvas.removeEventListener("pointermove", handlePointerMove as any);
+      canvas.removeEventListener(
+        "pointerenter",
+        handlePointerEnter as unknown as EventListener,
+      );
+      canvas.removeEventListener(
+        "pointermove",
+        handlePointerMove as unknown as EventListener,
+      );
       canvas.removeEventListener("pointerleave", handlePointerLeave);
       canvas.removeEventListener("click", handleClick);
 
@@ -802,7 +882,7 @@ export default function Register() {
   const [isError, setIsError] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSignup = async (e: any) => {
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setMessage("");
     setIsError(false);
@@ -819,14 +899,14 @@ export default function Register() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          full_name: name, // <-- This is the magic fix!
+          full_name: name,
           email,
           password,
           role: "instructor",
         }),
       });
 
-      let data: any = {};
+      let data: { message?: string } = {};
       try {
         data = await response.json();
       } catch {}
@@ -957,7 +1037,11 @@ export default function Register() {
 
           {message && (
             <div
-              className={`mt-6 w-full p-4 rounded-lg text-sm font-medium text-center ${isError ? "bg-red-500/10 text-red-400" : "bg-emerald-500/10 text-emerald-400"}`}
+              className={`mt-6 w-full p-4 rounded-lg text-sm font-medium text-center ${
+                isError
+                  ? "bg-red-500/10 text-red-400"
+                  : "bg-emerald-500/10 text-emerald-400"
+              }`}
             >
               {message}
             </div>

@@ -1,5 +1,5 @@
-import { Response, NextFunction } from "express";
-import { AuthRequest } from "./authMiddleware.js";
+import type { Response, NextFunction } from "express";
+import type{ AuthRequest } from "./authMiddleware.js";
 
 // This function takes the required role (e.g., 'instructor') and returns a middleware function
 export const requireRole = (role: string) => {

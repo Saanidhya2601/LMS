@@ -1,10 +1,12 @@
-import express, { Response } from "express";
+import express, { type Response } from "express";
 import cors from "cors";
 import { PrismaClient } from "@prisma/client";
 import authRoutes from "./routes/authRoutes.js";
+
+// ✅ Correctly split: authenticateToken is a function, AuthRequest is a type
 import {
   authenticateToken,
-  AuthRequest,
+  type AuthRequest,
 } from "./middlewares/authMiddleware.js";
 import { requireRole } from "./middlewares/roleMiddleware.js";
 

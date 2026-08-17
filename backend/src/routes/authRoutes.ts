@@ -11,7 +11,7 @@ router.post("/register", async (req: Request, res: Response): Promise<void> => {
   try {
     const { full_name, email, password, role } = req.body;
 
-    // 1. Check if user already exists
+    // 1. Check if user already exists (using prisma.users)
     const existingUser = await prisma.users.findUnique({ where: { email } });
     if (existingUser) {
       res.status(400).json({ success: false, message: "User already exists" });
@@ -23,12 +23,14 @@ router.post("/register", async (req: Request, res: Response): Promise<void> => {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     // 3. Save user to database
-    const newUser = await prisma.user.create({
+    // FIX 1: Changed prisma.user.create to prisma.users.create
+    const newUser = await prisma.users.create({
       data: {
         full_name,
         email,
-        password: hashedPassword,
-        role: role || "student", // Adds the role, but defaults to student if missing
+        // FIX 2: Changed 'password' to 'password_hash' to match your SQL schema
+        password_hash: hashedPassword,
+        role: role || "student",
       },
     });
 
@@ -38,6 +40,7 @@ router.post("/register", async (req: Request, res: Response): Promise<void> => {
       userId: newUser.id,
     });
   } catch (error) {
+    console.error("REGISTER ERROR:", error); // <-- Added this so future errors print in your terminal!
     res.status(500).json({ success: false, error: (error as Error).message });
   }
 });
@@ -56,7 +59,7 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // 2. Compare the passwords
+    // 2. Compare the passwords (Matches password_hash correctly!)
     const validPassword = await bcrypt.compare(password, user.password_hash);
     if (!validPassword) {
       res
@@ -78,6 +81,7 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
       user: { id: user.id, email: user.email, role: user.role },
     });
   } catch (error) {
+    console.error("LOGIN ERROR:", error);
     res.status(500).json({ success: false, error: (error as Error).message });
   }
 });
