@@ -49,16 +49,27 @@ app.post(
   requireRole("instructor"),
   async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const { title, slug, description, category, level } = req.body;
+      const { title, description, category, level, status } = req.body;
 
+      // 🚀 THE FIX: Auto-generate a unique URL slug!
+      // Converts "Dynamic Programming" -> "dynamic-programming-843"
+      const generatedSlug =
+        title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)+/g, "") +
+        "-" +
+        Math.floor(Math.random() * 1000);
+
+      // Save to database
       const newCourse = await prisma.courses.create({
         data: {
           title,
-          slug,
+          slug: generatedSlug,
           description,
           category,
-          level,
-          status: "draft",
+          level: level || "Beginner", // <-- THE FIX: Added fallback!
+          status: status || "draft",
           instructor_id: req.user.id,
         },
       });
@@ -69,6 +80,8 @@ app.post(
         data: newCourse,
       });
     } catch (error) {
+      // Added this so future database errors print loudly in your terminal!
+      console.error("COURSE CREATION ERROR:", error);
       res.status(500).json({ success: false, error: (error as Error).message });
     }
   },
