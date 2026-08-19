@@ -11,6 +11,7 @@ import {
   FileText,
   Video,
   X,
+  Trash2,
 } from "lucide-react";
 import axios from "axios";
 
@@ -51,12 +52,10 @@ export default function ManageCourse() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" });
 
-  // Curriculum State
   const [modules, setModules] = useState<Module[]>([]);
   const [newModuleTitle, setNewModuleTitle] = useState("");
   const [isCreatingModule, setIsCreatingModule] = useState(false);
 
-  // 🚀 NEW: Lesson State
   const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
   const [isCreatingLesson, setIsCreatingLesson] = useState(false);
@@ -66,7 +65,6 @@ export default function ManageCourse() {
     video_url: "",
   });
 
-  // Settings Form State
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -163,7 +161,27 @@ export default function ManageCourse() {
     }
   };
 
-  // 🚀 NEW: Handle Creating a Lesson
+  // 🚀 NEW: Handle Deleting a Module
+  const handleDeleteModule = async (moduleId: string) => {
+    const isConfirmed = window.confirm(
+      "Are you sure you want to delete this module and all of its lessons? This cannot be undone.",
+    );
+    if (!isConfirmed) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`http://localhost:5000/api/modules/${moduleId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // Update UI
+      setModules(modules.filter((mod) => mod.id !== moduleId));
+    } catch (error) {
+      console.error("Failed to delete module:", error);
+      alert("Failed to delete module.");
+    }
+  };
+
   const handleCreateLesson = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeModuleId) return;
@@ -171,8 +189,6 @@ export default function ManageCourse() {
     setIsCreatingLesson(true);
     try {
       const token = localStorage.getItem("token");
-
-      // Find the current module to figure out what order number this lesson should be
       const parentModule = modules.find((m) => m.id === activeModuleId);
       const nextOrder = (parentModule?.lessons?.length || 0) + 1;
 
@@ -182,7 +198,6 @@ export default function ManageCourse() {
         { headers: { Authorization: `Bearer ${token}` } },
       );
 
-      // Instantly update the UI by pushing the new lesson into the correct module's array
       setModules(
         modules.map((mod) => {
           if (mod.id === activeModuleId) {
@@ -195,7 +210,6 @@ export default function ManageCourse() {
         }),
       );
 
-      // Close modal & Reset
       setIsLessonModalOpen(false);
       setLessonFormData({ title: "", content: "", video_url: "" });
       setActiveModuleId(null);
@@ -207,7 +221,37 @@ export default function ManageCourse() {
     }
   };
 
-  // Helper to open modal for a specific module
+  // 🚀 NEW: Handle Deleting a Lesson
+  const handleDeleteLesson = async (moduleId: string, lessonId: string) => {
+    const isConfirmed = window.confirm(
+      "Are you sure you want to delete this lesson?",
+    );
+    if (!isConfirmed) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`http://localhost:5000/api/lessons/${lessonId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // Update UI to remove just that lesson
+      setModules(
+        modules.map((mod) => {
+          if (mod.id === moduleId) {
+            return {
+              ...mod,
+              lessons: mod.lessons?.filter((lesson) => lesson.id !== lessonId),
+            };
+          }
+          return mod;
+        }),
+      );
+    } catch (error) {
+      console.error("Failed to delete lesson:", error);
+      alert("Failed to delete lesson.");
+    }
+  };
+
   const openLessonModal = (moduleId: string) => {
     setActiveModuleId(moduleId);
     setIsLessonModalOpen(true);
@@ -303,7 +347,6 @@ export default function ManageCourse() {
                     key={module.id}
                     className="bg-slate-900/80 border border-white/10 rounded-xl overflow-hidden group"
                   >
-                    {/* Module Header */}
                     <div className="p-5 flex items-center justify-between bg-slate-900 border-b border-white/5">
                       <div className="flex items-center gap-4">
                         <GripVertical className="h-5 w-5 text-slate-600 cursor-grab hover:text-slate-400" />
@@ -316,15 +359,25 @@ export default function ManageCourse() {
                           </h3>
                         </div>
                       </div>
-                      <button
-                        onClick={() => openLessonModal(module.id)}
-                        className="text-sm bg-white/5 hover:bg-white/10 text-slate-300 px-4 py-2 rounded-lg transition-colors border border-white/5 flex items-center gap-2"
-                      >
-                        <Plus className="h-4 w-4" /> Add Lesson
-                      </button>
+
+                      {/* 🚀 UPGRADED: Delete Module Button */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => openLessonModal(module.id)}
+                          className="text-sm bg-white/5 hover:bg-white/10 text-slate-300 px-4 py-2 rounded-lg transition-colors border border-white/5 flex items-center gap-2"
+                        >
+                          <Plus className="h-4 w-4" /> Add Lesson
+                        </button>
+                        <button
+                          onClick={() => handleDeleteModule(module.id)}
+                          className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                          title="Delete Module"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
 
-                    {/* 🚀 NEW: Lessons List inside the Module */}
                     <div className="p-4 space-y-2">
                       {!module.lessons || module.lessons.length === 0 ? (
                         <p className="text-sm text-slate-500 text-center py-4">
@@ -344,19 +397,32 @@ export default function ManageCourse() {
                                 {lesson.title}
                               </h4>
                             </div>
-                            <div className="flex gap-2">
-                              {lesson.video_url && (
-                                <Video
-                                  className="h-4 w-4 text-slate-500"
-                                  title="Has Video"
-                                />
-                              )}
-                              {lesson.content && (
-                                <FileText
-                                  className="h-4 w-4 text-slate-500"
-                                  title="Has Text Content"
-                                />
-                              )}
+
+                            {/* 🚀 UPGRADED: Delete Lesson Button */}
+                            <div className="flex gap-3 items-center border-l border-white/5 pl-4">
+                              <div className="flex gap-2">
+                                {lesson.video_url && (
+                                  <Video
+                                    className="h-4 w-4 text-slate-500"
+                                    title="Has Video"
+                                  />
+                                )}
+                                {lesson.content && (
+                                  <FileText
+                                    className="h-4 w-4 text-slate-500"
+                                    title="Has Text Content"
+                                  />
+                                )}
+                              </div>
+                              <button
+                                onClick={() =>
+                                  handleDeleteLesson(module.id, lesson.id)
+                                }
+                                className="p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
+                                title="Delete Lesson"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
                             </div>
                           </div>
                         ))
@@ -367,7 +433,6 @@ export default function ManageCourse() {
               )}
             </div>
 
-            {/* Create New Module Form */}
             <form
               onSubmit={handleCreateModule}
               className="bg-slate-900/50 border border-white/10 p-6 rounded-2xl"
@@ -407,6 +472,7 @@ export default function ManageCourse() {
               onSubmit={handleUpdateCourse}
               className="space-y-6 bg-slate-900/50 border border-white/10 p-6 rounded-2xl"
             >
+              {/* Same form logic as before... */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
                   Course Title
@@ -452,7 +518,6 @@ export default function ManageCourse() {
                     className="w-full px-4 py-2 bg-slate-950 border border-white/10 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
                     Level
@@ -469,7 +534,6 @@ export default function ManageCourse() {
                     <option value="Advanced">Advanced</option>
                   </select>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
                     Status
@@ -489,11 +553,7 @@ export default function ManageCourse() {
 
               {message.text && (
                 <div
-                  className={`p-3 rounded-lg text-sm font-medium text-center border ${
-                    message.type === "success"
-                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                      : "bg-red-500/10 text-red-400 border-red-500/20"
-                  }`}
+                  className={`p-3 rounded-lg text-sm font-medium text-center border ${message.type === "success" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-red-500/10 text-red-400 border-red-500/20"}`}
                 >
                   {message.text}
                 </div>
@@ -527,7 +587,7 @@ export default function ManageCourse() {
         )}
       </main>
 
-      {/* 🚀 NEW: The Lesson Creation Modal Overlay */}
+      {/* Lesson Creation Modal */}
       {isLessonModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
@@ -560,7 +620,6 @@ export default function ManageCourse() {
                   placeholder="e.g., Understanding React Hooks"
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
                   Video URL (Optional)
@@ -578,7 +637,6 @@ export default function ManageCourse() {
                   placeholder="https://youtube.com/..."
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
                   Lesson Content (Optional)

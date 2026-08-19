@@ -295,7 +295,44 @@ app.post(
     }
   },
 );
+// ---------------------------------------------------------
+// DELETE: Remove a Module (Instructors only)
+// ---------------------------------------------------------
+app.delete(
+  "/api/modules/:id",
+  authenticateToken,
+  requireRole("instructor"),
+  async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      // 1. Delete all lessons inside this module first to prevent relation errors
+      await prisma.lessons.deleteMany({ where: { module_id: req.params.id } });
 
+      // 2. Delete the module itself
+      await prisma.modules.delete({ where: { id: req.params.id } });
+
+      res.json({ success: true, message: "Module deleted" });
+    } catch (error) {
+      res.status(500).json({ success: false, error: (error as Error).message });
+    }
+  },
+);
+
+// ---------------------------------------------------------
+// DELETE: Remove a Lesson (Instructors only)
+// ---------------------------------------------------------
+app.delete(
+  "/api/lessons/:id",
+  authenticateToken,
+  requireRole("instructor"),
+  async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      await prisma.lessons.delete({ where: { id: req.params.id } });
+      res.json({ success: true, message: "Lesson deleted" });
+    } catch (error) {
+      res.status(500).json({ success: false, error: (error as Error).message });
+    }
+  },
+);
 app.listen(PORT, () => {
   console.log(`Server is running live on http://localhost:${PORT}`);
 });
