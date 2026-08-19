@@ -1,7 +1,15 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, LogOut, Plus, X, Trash2 } from "lucide-react";
+import {
+  BookOpen,
+  LogOut,
+  Plus,
+  X,
+  Trash2,
+  UserPlus,
+  CheckCircle,
+} from "lucide-react";
 
 interface Course {
   id: string;
@@ -9,13 +17,18 @@ interface Course {
   description: string;
   category: string;
   status: string;
+  users?: { full_name: string }; // Instructor's name
 }
 
 export default function Dashboard() {
   const [courses, setCourses] = useState<Course[]>([]);
   const navigate = useNavigate();
 
-  // Modal & Form State
+  // 🚀 Get the logged-in user to figure out their role
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const isInstructor = user.role === "instructor";
+
+  // Modal & Form State (Only used by instructors)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -23,8 +36,8 @@ export default function Dashboard() {
     title: "",
     description: "",
     category: "",
-    status: "published", // or "draft"
-    level: "Beginner", // <-- THE FIX: Added level property!
+    status: "draft",
+    level: "Beginner",
   });
 
   useEffect(() => {
@@ -61,20 +74,13 @@ export default function Dashboard() {
 
     try {
       const token = localStorage.getItem("token");
-
-      // POST the new course to the backend
       const response = await axios.post(
         "http://localhost:5000/api/courses",
         formData,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
-      // Add the newly created course to the screen instantly
       setCourses([response.data.data, ...courses]);
-
-      // Close modal and reset form
       setIsModalOpen(false);
       setFormData({
         title: "",
@@ -84,18 +90,13 @@ export default function Dashboard() {
         level: "Beginner",
       });
     } catch (err: any) {
-      setError(
-        err.response?.data?.message ||
-          "Failed to create course. Are you an instructor?",
-      );
+      setError(err.response?.data?.message || "Failed to create course.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Function to handle deleting a course
   const handleDeleteCourse = async (courseId: string) => {
-    // 1. Ask for confirmation first!
     const isConfirmed = window.confirm(
       "Are you sure you want to delete this course? This cannot be undone.",
     );
@@ -103,23 +104,41 @@ export default function Dashboard() {
 
     try {
       const token = localStorage.getItem("token");
-
-      // 2. Tell the backend to delete it
       await axios.delete(`http://localhost:5000/api/courses/${courseId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      // 3. Instantly remove it from the screen without reloading the page
       setCourses(courses.filter((course) => course.id !== courseId));
     } catch (error) {
       console.error("Failed to delete course:", error);
-      alert("Failed to delete the course. Please try again.");
+      alert("Failed to delete the course.");
+    }
+  };
+
+  // 🚀 NEW: Handle Student Enrollment
+  const handleEnroll = async (courseId: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `http://localhost:5000/api/courses/${courseId}/enroll`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      // Teleport instantly on success!
+      navigate(`/learn/${courseId}`);
+    } catch (error: any) {
+      // If they are ALREADY enrolled (Backend throws a 400), just let them into the classroom anyway!
+      if (error.response?.status === 400) {
+        navigate(`/learn/${courseId}`);
+      } else {
+        alert("Failed to access course. Please try again.");
+      }
     }
   };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-300 font-sans selection:bg-indigo-500/30">
-      {/* Navbar */}
       <nav className="bg-slate-900/60 backdrop-blur-md border-b border-white/10 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
         <div className="flex items-center gap-3">
           <div className="bg-indigo-500/20 p-2.5 rounded-xl border border-indigo-500/20">
@@ -129,39 +148,56 @@ export default function Dashboard() {
             LMS Dashboard
           </span>
         </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 text-slate-400 hover:text-red-400 transition-colors font-medium text-sm bg-white/5 hover:bg-white/10 px-4 py-2.5 rounded-lg border border-transparent hover:border-red-500/20"
-        >
-          <LogOut className="h-4 w-4" />
-          Logout
-        </button>
+        <div className="flex items-center gap-6">
+          <span className="text-sm font-medium text-slate-400 hidden sm:block">
+            Welcome, <span className="text-white">{user.full_name}</span>
+            <span className="ml-2 text-[10px] bg-slate-800 px-2 py-1 rounded-full uppercase tracking-wider">
+              {user.role}
+            </span>
+          </span>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-slate-400 hover:text-red-400 transition-colors font-medium text-sm bg-white/5 hover:bg-white/10 px-4 py-2.5 rounded-lg border border-transparent hover:border-red-500/20"
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </button>
+        </div>
       </nav>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-10 relative">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">My Courses</h1>
-            <p className="text-slate-500">Manage and track your curriculum</p>
+            <h1 className="text-3xl font-bold text-white mb-2">
+              {isInstructor ? "My Courses" : "Explore Courses"}
+            </h1>
+            <p className="text-slate-500">
+              {isInstructor
+                ? "Manage and track your curriculum"
+                : "Find your next great thing to learn"}
+            </p>
           </div>
 
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-indigo-500 transition-all duration-300 shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.6)]"
-          >
-            <Plus className="h-5 w-5" />
-            Create Course
-          </button>
+          {/* Only Instructors get the Create button */}
+          {isInstructor && (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-indigo-500 transition-all duration-300 shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.6)]"
+            >
+              <Plus className="h-5 w-5" />
+              Create Course
+            </button>
+          )}
         </div>
 
-        {/* Course Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {courses.length === 0 ? (
             <div className="col-span-full py-24 text-center border-2 border-dashed border-white/10 rounded-2xl bg-white/5 flex flex-col items-center justify-center">
               <BookOpen className="h-12 w-12 text-slate-600 mb-4" />
               <p className="text-slate-400 text-lg">
-                No courses found. Time to create your first one!
+                {isInstructor
+                  ? "No courses found. Time to create your first one!"
+                  : "No courses are currently available."}
               </p>
             </div>
           ) : (
@@ -170,19 +206,20 @@ export default function Dashboard() {
                 key={course.id}
                 className="group bg-slate-900 border border-white/10 rounded-2xl overflow-hidden hover:border-indigo-500/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(79,70,229,0.15)] flex flex-col"
               >
-                {/* 🚀 UPDATED SECTION: Image placeholder with hidden Delete Button */}
                 <div className="h-40 bg-slate-950 flex items-center justify-center border-b border-white/5 relative overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                   <BookOpen className="h-10 w-10 text-slate-800 group-hover:text-indigo-500/40 transition-colors duration-500 relative z-10" />
 
-                  {/* The new Delete Button */}
-                  <button
-                    onClick={() => handleDeleteCourse(course.id)}
-                    className="absolute top-3 right-3 p-2 bg-slate-900/80 text-slate-400 rounded-lg hover:bg-red-500 hover:text-white transition-all duration-300 z-20 opacity-0 group-hover:opacity-100 border border-white/10 hover:border-red-500"
-                    title="Delete Course"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  {/* Only Instructors get the Delete button */}
+                  {isInstructor && (
+                    <button
+                      onClick={() => handleDeleteCourse(course.id)}
+                      className="absolute top-3 right-3 p-2 bg-slate-900/80 text-slate-400 rounded-lg hover:bg-red-500 hover:text-white transition-all duration-300 z-20 opacity-0 group-hover:opacity-100 border border-white/10 hover:border-red-500"
+                      title="Delete Course"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
 
                 <div className="p-6 flex-1 flex flex-col">
@@ -190,15 +227,19 @@ export default function Dashboard() {
                     <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-2.5 py-1 rounded-full border border-indigo-500/20">
                       {course.category}
                     </span>
-                    <span
-                      className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-widest border ${
-                        course.status === "published"
-                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                          : "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                      }`}
-                    >
-                      {course.status}
-                    </span>
+
+                    {/* Show Draft/Published badge for Instructors. Show Instructor Name for Students */}
+                    {isInstructor ? (
+                      <span
+                        className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-widest border ${course.status === "published" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20"}`}
+                      >
+                        {course.status}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
+                        By {course.users?.full_name || "Instructor"}
+                      </span>
+                    )}
                   </div>
 
                   <h3 className="text-xl font-bold text-white mb-2 leading-snug group-hover:text-indigo-300 transition-colors">
@@ -209,12 +250,21 @@ export default function Dashboard() {
                   </p>
 
                   <div className="pt-4 border-t border-white/5 mt-auto">
-                    <button
-                      onClick={() => navigate(`/manage-course/${course.id}`)}
-                      className="w-full text-center text-sm font-semibold text-slate-300 hover:text-white transition-colors py-2.5 bg-white/5 rounded-lg hover:bg-white/10"
-                    >
-                      Manage Course
-                    </button>
+                    {isInstructor ? (
+                      <button
+                        onClick={() => navigate(`/manage-course/${course.id}`)}
+                        className="w-full text-center text-sm font-semibold text-slate-300 hover:text-white transition-colors py-2.5 bg-white/5 rounded-lg hover:bg-white/10"
+                      >
+                        Manage Course
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleEnroll(course.id)}
+                        className="w-full flex justify-center items-center gap-2 text-sm font-semibold text-indigo-400 hover:text-white transition-colors py-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg hover:bg-indigo-500 hover:border-indigo-500 shadow-sm"
+                      >
+                        <UserPlus className="h-4 w-4" /> Enroll Now
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -223,11 +273,11 @@ export default function Dashboard() {
         </div>
       </main>
 
-      {/* The Create Course Modal Overlay */}
-      {isModalOpen && (
+      {/* Instructor's Create Modal Overlay (Unchanged) */}
+      {isModalOpen && isInstructor && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          {/* ... (Your existing modal code remains exactly the same here) ... */}
           <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-            {/* Modal Header */}
             <div className="flex justify-between items-center p-6 border-b border-white/10">
               <h2 className="text-xl font-bold text-white">
                 Create New Course
@@ -239,8 +289,6 @@ export default function Dashboard() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-
-            {/* Modal Form */}
             <form onSubmit={handleCreateCourse} className="p-6 space-y-5">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -257,7 +305,6 @@ export default function Dashboard() {
                   placeholder="e.g., Advanced React Patterns"
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
                   Description
@@ -273,7 +320,6 @@ export default function Dashboard() {
                   placeholder="What will students learn?"
                 />
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -306,13 +352,11 @@ export default function Dashboard() {
                   </select>
                 </div>
               </div>
-
               {error && (
                 <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-lg text-center">
                   {error}
                 </div>
               )}
-
               <div className="pt-4 flex justify-end gap-3 border-t border-white/10">
                 <button
                   type="button"
@@ -324,7 +368,7 @@ export default function Dashboard() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_20px_rgba(79,70,229,0.5)]"
+                  className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-indigo-500 disabled:opacity-50 transition-all"
                 >
                   {isSubmitting ? "Saving..." : "Save Course"}
                 </button>

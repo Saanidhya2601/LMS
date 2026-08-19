@@ -3,7 +3,6 @@ import cors from "cors";
 import { PrismaClient } from "@prisma/client";
 import authRoutes from "./routes/authRoutes.js";
 
-// ✅ Correctly split: authenticateToken is a function, AuthRequest is a type
 import {
   authenticateToken,
   type AuthRequest,
@@ -20,19 +19,17 @@ app.use(express.json());
 // Public Auth Routes
 app.use("/api/auth", authRoutes);
 
-// Protected Route: GET all courses (Any logged-in user can view)
+// Protected Route: GET courses (Instructors see their own, Students ONLY see published courses)
 app.get(
   "/api/courses",
   authenticateToken,
   async (req: AuthRequest, res: Response) => {
     try {
-      // 🚀 THE FIX: Put the condition directly inside the where clause!
-      // If they are a student, it returns undefined, and Prisma fetches everything.
       const courses = await prisma.courses.findMany({
         where:
           req.user.role === "instructor"
             ? { instructor_id: req.user.id }
-            : undefined,
+            : { status: "published" },
         include: {
           users: {
             select: { full_name: true, email: true, role: true },
@@ -59,7 +56,7 @@ app.get(
         where: { id: req.params.id },
         include: {
           modules: {
-            orderBy: { order: "asc" }, // Keeps them in the right order!
+            orderBy: { order: "asc" },
             include: {
               lessons: {
                 orderBy: { order: "asc" },
@@ -90,7 +87,6 @@ app.post(
     try {
       const { title, description, category, level, status } = req.body;
 
-      // Auto-generate a unique URL slug!
       const generatedSlug =
         title
           .toLowerCase()
@@ -99,7 +95,6 @@ app.post(
         "-" +
         Math.floor(Math.random() * 1000);
 
-      // Save to database
       const newCourse = await prisma.courses.create({
         data: {
           title,
@@ -204,9 +199,7 @@ app.delete(
   },
 );
 
-// ---------------------------------------------------------
 // POST: Add a Module to a Course (Instructors only)
-// ---------------------------------------------------------
 app.post(
   "/api/courses/:courseId/modules",
   authenticateToken,
@@ -216,7 +209,6 @@ app.post(
       const { courseId } = req.params;
       const { title, order } = req.body;
 
-      // Ensure the course exists and belongs to the instructor
       const course = await prisma.courses.findUnique({
         where: { id: courseId },
       });
@@ -241,9 +233,7 @@ app.post(
   },
 );
 
-// ---------------------------------------------------------
 // POST: Add a Lesson to a Module (Instructors only)
-// ---------------------------------------------------------
 app.post(
   "/api/modules/:moduleId/lessons",
   authenticateToken,
@@ -266,9 +256,38 @@ app.post(
   },
 );
 
-// ---------------------------------------------------------
+// DELETE: Remove a Module (Instructors only)
+app.delete(
+  "/api/modules/:id",
+  authenticateToken,
+  requireRole("instructor"),
+  async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      await prisma.lessons.deleteMany({ where: { module_id: req.params.id } });
+      await prisma.modules.delete({ where: { id: req.params.id } });
+      res.json({ success: true, message: "Module deleted" });
+    } catch (error) {
+      res.status(500).json({ success: false, error: (error as Error).message });
+    }
+  },
+);
+
+// DELETE: Remove a Lesson (Instructors only)
+app.delete(
+  "/api/lessons/:id",
+  authenticateToken,
+  requireRole("instructor"),
+  async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      await prisma.lessons.delete({ where: { id: req.params.id } });
+      res.json({ success: true, message: "Lesson deleted" });
+    } catch (error) {
+      res.status(500).json({ success: false, error: (error as Error).message });
+    }
+  },
+);
+
 // POST: Enroll a Student in a Course (Students only)
-// ---------------------------------------------------------
 app.post(
   "/api/courses/:courseId/enroll",
   authenticateToken,
@@ -295,44 +314,7 @@ app.post(
     }
   },
 );
-// ---------------------------------------------------------
-// DELETE: Remove a Module (Instructors only)
-// ---------------------------------------------------------
-app.delete(
-  "/api/modules/:id",
-  authenticateToken,
-  requireRole("instructor"),
-  async (req: AuthRequest, res: Response): Promise<void> => {
-    try {
-      // 1. Delete all lessons inside this module first to prevent relation errors
-      await prisma.lessons.deleteMany({ where: { module_id: req.params.id } });
 
-      // 2. Delete the module itself
-      await prisma.modules.delete({ where: { id: req.params.id } });
-
-      res.json({ success: true, message: "Module deleted" });
-    } catch (error) {
-      res.status(500).json({ success: false, error: (error as Error).message });
-    }
-  },
-);
-
-// ---------------------------------------------------------
-// DELETE: Remove a Lesson (Instructors only)
-// ---------------------------------------------------------
-app.delete(
-  "/api/lessons/:id",
-  authenticateToken,
-  requireRole("instructor"),
-  async (req: AuthRequest, res: Response): Promise<void> => {
-    try {
-      await prisma.lessons.delete({ where: { id: req.params.id } });
-      res.json({ success: true, message: "Lesson deleted" });
-    } catch (error) {
-      res.status(500).json({ success: false, error: (error as Error).message });
-    }
-  },
-);
 app.listen(PORT, () => {
   console.log(`Server is running live on http://localhost:${PORT}`);
 });

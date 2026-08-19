@@ -2,7 +2,8 @@ import { Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
-import ManageCourse from "./pages/ManageCourse"; // <-- Make sure to import this!
+import ManageCourse from "./pages/ManageCourse";
+import CourseViewer from "./pages/CourseViewer"; 
 
 function App() {
   return (
@@ -10,8 +11,9 @@ function App() {
       <Route path="/" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/dashboard" element={<Dashboard />} />
-      {/* 🚀 This tells React to load the new page when the button is clicked */}
       <Route path="/manage-course/:courseId" element={<ManageCourse />} />
+      {/* 🚀 This is the exact route React was complaining about missing! */}
+      <Route path="/learn/:courseId" element={<CourseViewer />} /> 
     </Routes>
   );
 }
