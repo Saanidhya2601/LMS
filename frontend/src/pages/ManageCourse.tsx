@@ -8,13 +8,17 @@ import {
   Save,
   Plus,
   GripVertical,
+  FileText,
+  Video,
+  X,
 } from "lucide-react";
 import axios from "axios";
 
-// Added Module and Lesson interfaces
 interface Lesson {
   id: string;
   title: string;
+  content: string;
+  video_url: string;
   order: number;
 }
 
@@ -32,7 +36,7 @@ interface Course {
   category: string;
   status: string;
   level: string;
-  modules?: Module[]; // Course now includes modules!
+  modules?: Module[];
 }
 
 export default function ManageCourse() {
@@ -52,6 +56,16 @@ export default function ManageCourse() {
   const [newModuleTitle, setNewModuleTitle] = useState("");
   const [isCreatingModule, setIsCreatingModule] = useState(false);
 
+  // 🚀 NEW: Lesson State
+  const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
+  const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
+  const [isCreatingLesson, setIsCreatingLesson] = useState(false);
+  const [lessonFormData, setLessonFormData] = useState({
+    title: "",
+    content: "",
+    video_url: "",
+  });
+
   // Settings Form State
   const [formData, setFormData] = useState({
     title: "",
@@ -61,7 +75,6 @@ export default function ManageCourse() {
     level: "Beginner",
   });
 
-  // Fetch the course AND its modules
   useEffect(() => {
     const fetchCourse = async () => {
       const token = localStorage.getItem("token");
@@ -71,7 +84,6 @@ export default function ManageCourse() {
       }
 
       try {
-        // 🚀 We are now using the NEW backend route!
         const response = await axios.get(
           `http://localhost:5000/api/courses/${courseId}`,
           {
@@ -80,7 +92,6 @@ export default function ManageCourse() {
         );
 
         const foundCourse = response.data.data;
-
         if (foundCourse) {
           setCourse(foundCourse);
           setModules(foundCourse.modules || []);
@@ -103,7 +114,6 @@ export default function ManageCourse() {
     fetchCourse();
   }, [courseId, navigate]);
 
-  // Handle updating Course Settings
   const handleUpdateCourse = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -130,7 +140,6 @@ export default function ManageCourse() {
     }
   };
 
-  // 🚀 NEW: Handle creating a Module
   const handleCreateModule = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newModuleTitle.trim()) return;
@@ -140,22 +149,68 @@ export default function ManageCourse() {
       const token = localStorage.getItem("token");
       const response = await axios.post(
         `http://localhost:5000/api/courses/${courseId}/modules`,
-        {
-          title: newModuleTitle,
-          order: modules.length + 1, // Put it at the end of the list
-        },
+        { title: newModuleTitle, order: modules.length + 1 },
         { headers: { Authorization: `Bearer ${token}` } },
       );
 
-      // Add the new module to the screen instantly
-      setModules([...modules, response.data.data]);
-      setNewModuleTitle(""); // Clear the input box
+      setModules([...modules, { ...response.data.data, lessons: [] }]);
+      setNewModuleTitle("");
     } catch (error) {
       console.error("Failed to create module:", error);
       alert("Failed to create module.");
     } finally {
       setIsCreatingModule(false);
     }
+  };
+
+  // 🚀 NEW: Handle Creating a Lesson
+  const handleCreateLesson = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeModuleId) return;
+
+    setIsCreatingLesson(true);
+    try {
+      const token = localStorage.getItem("token");
+
+      // Find the current module to figure out what order number this lesson should be
+      const parentModule = modules.find((m) => m.id === activeModuleId);
+      const nextOrder = (parentModule?.lessons?.length || 0) + 1;
+
+      const response = await axios.post(
+        `http://localhost:5000/api/modules/${activeModuleId}/lessons`,
+        { ...lessonFormData, order: nextOrder },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+
+      // Instantly update the UI by pushing the new lesson into the correct module's array
+      setModules(
+        modules.map((mod) => {
+          if (mod.id === activeModuleId) {
+            return {
+              ...mod,
+              lessons: [...(mod.lessons || []), response.data.data],
+            };
+          }
+          return mod;
+        }),
+      );
+
+      // Close modal & Reset
+      setIsLessonModalOpen(false);
+      setLessonFormData({ title: "", content: "", video_url: "" });
+      setActiveModuleId(null);
+    } catch (error) {
+      console.error("Failed to create lesson:", error);
+      alert("Failed to create lesson.");
+    } finally {
+      setIsCreatingLesson(false);
+    }
+  };
+
+  // Helper to open modal for a specific module
+  const openLessonModal = (moduleId: string) => {
+    setActiveModuleId(moduleId);
+    setIsLessonModalOpen(true);
   };
 
   if (loading) {
@@ -167,9 +222,9 @@ export default function ManageCourse() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex">
+    <div className="min-h-screen bg-slate-950 text-white flex relative">
       {/* Sidebar */}
-      <aside className="w-64 border-r border-white/10 bg-slate-900/50 flex flex-col">
+      <aside className="w-64 border-r border-white/10 bg-slate-900/50 flex flex-col z-10">
         <div className="p-6 border-b border-white/10">
           <button
             onClick={() => navigate("/dashboard")}
@@ -227,7 +282,7 @@ export default function ManageCourse() {
 
       {/* Main Content Area */}
       <main className="flex-1 p-10 overflow-y-auto">
-        {/* 🚀 TAB 1: CURRICULUM */}
+        {/* TAB 1: CURRICULUM */}
         {activeTab === "curriculum" && (
           <div className="max-w-4xl">
             <h1 className="text-3xl font-bold mb-2">Curriculum Builder</h1>
@@ -235,8 +290,7 @@ export default function ManageCourse() {
               Design your course structure by adding modules and lessons.
             </p>
 
-            {/* Display Existing Modules */}
-            <div className="space-y-4 mb-8">
+            <div className="space-y-6 mb-8">
               {modules.length === 0 ? (
                 <div className="p-8 border-2 border-dashed border-white/10 rounded-2xl text-center">
                   <p className="text-slate-500">
@@ -247,23 +301,67 @@ export default function ManageCourse() {
                 modules.map((module, index) => (
                   <div
                     key={module.id}
-                    className="bg-slate-900 border border-white/10 rounded-xl p-5 flex items-center justify-between group"
+                    className="bg-slate-900/80 border border-white/10 rounded-xl overflow-hidden group"
                   >
-                    <div className="flex items-center gap-4">
-                      <GripVertical className="h-5 w-5 text-slate-600 cursor-grab hover:text-slate-400" />
-                      <div>
-                        <span className="text-xs font-bold text-indigo-400 mb-1 block">
-                          Module {index + 1}
-                        </span>
-                        <h3 className="text-lg font-semibold text-white">
-                          {module.title}
-                        </h3>
+                    {/* Module Header */}
+                    <div className="p-5 flex items-center justify-between bg-slate-900 border-b border-white/5">
+                      <div className="flex items-center gap-4">
+                        <GripVertical className="h-5 w-5 text-slate-600 cursor-grab hover:text-slate-400" />
+                        <div>
+                          <span className="text-xs font-bold text-indigo-400 mb-1 block">
+                            Module {index + 1}
+                          </span>
+                          <h3 className="text-lg font-semibold text-white">
+                            {module.title}
+                          </h3>
+                        </div>
                       </div>
+                      <button
+                        onClick={() => openLessonModal(module.id)}
+                        className="text-sm bg-white/5 hover:bg-white/10 text-slate-300 px-4 py-2 rounded-lg transition-colors border border-white/5 flex items-center gap-2"
+                      >
+                        <Plus className="h-4 w-4" /> Add Lesson
+                      </button>
                     </div>
-                    {/* Add Lesson Button (Placeholder for Phase 2) */}
-                    <button className="text-sm bg-white/5 hover:bg-white/10 text-slate-300 px-4 py-2 rounded-lg transition-colors border border-white/5">
-                      + Add Lesson
-                    </button>
+
+                    {/* 🚀 NEW: Lessons List inside the Module */}
+                    <div className="p-4 space-y-2">
+                      {!module.lessons || module.lessons.length === 0 ? (
+                        <p className="text-sm text-slate-500 text-center py-4">
+                          No lessons yet.
+                        </p>
+                      ) : (
+                        module.lessons.map((lesson, lIndex) => (
+                          <div
+                            key={lesson.id}
+                            className="flex items-center gap-4 bg-slate-950 p-4 rounded-lg border border-white/5 hover:border-white/10 transition-colors"
+                          >
+                            <div className="h-8 w-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-400">
+                              {lIndex + 1}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="text-sm font-medium text-slate-200">
+                                {lesson.title}
+                              </h4>
+                            </div>
+                            <div className="flex gap-2">
+                              {lesson.video_url && (
+                                <Video
+                                  className="h-4 w-4 text-slate-500"
+                                  title="Has Video"
+                                />
+                              )}
+                              {lesson.content && (
+                                <FileText
+                                  className="h-4 w-4 text-slate-500"
+                                  title="Has Text Content"
+                                />
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
                 ))
               )}
@@ -297,7 +395,7 @@ export default function ManageCourse() {
           </div>
         )}
 
-        {/* TAB 2: SETTINGS (Unchanged from before) */}
+        {/* TAB 2: SETTINGS */}
         {activeTab === "settings" && (
           <div className="max-w-3xl">
             <h1 className="text-3xl font-bold mb-2">Course Settings</h1>
@@ -428,6 +526,97 @@ export default function ManageCourse() {
           </div>
         )}
       </main>
+
+      {/* 🚀 NEW: The Lesson Creation Modal Overlay */}
+      {isLessonModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-white/10">
+              <h2 className="text-xl font-bold text-white">Add New Lesson</h2>
+              <button
+                onClick={() => setIsLessonModalOpen(false)}
+                className="text-slate-400 hover:text-white transition-colors p-1 rounded-md hover:bg-white/10"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateLesson} className="p-6 space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Lesson Title
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={lessonFormData.title}
+                  onChange={(e) =>
+                    setLessonFormData({
+                      ...lessonFormData,
+                      title: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2 bg-slate-950 border border-white/10 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                  placeholder="e.g., Understanding React Hooks"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Video URL (Optional)
+                </label>
+                <input
+                  type="url"
+                  value={lessonFormData.video_url}
+                  onChange={(e) =>
+                    setLessonFormData({
+                      ...lessonFormData,
+                      video_url: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2 bg-slate-950 border border-white/10 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                  placeholder="https://youtube.com/..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Lesson Content (Optional)
+                </label>
+                <textarea
+                  rows={5}
+                  value={lessonFormData.content}
+                  onChange={(e) =>
+                    setLessonFormData({
+                      ...lessonFormData,
+                      content: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2 bg-slate-950 border border-white/10 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                  placeholder="Write the lesson notes or content here..."
+                />
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setIsLessonModalOpen(false)}
+                  className="px-4 py-2 text-slate-300 hover:text-white hover:bg-white/5 rounded-lg font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingLesson}
+                  className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-indigo-500 disabled:opacity-50"
+                >
+                  {isCreatingLesson ? "Saving..." : "Save Lesson"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
