@@ -26,18 +26,57 @@ app.get(
   authenticateToken,
   async (req: AuthRequest, res: Response) => {
     try {
-      const allCourses = await prisma.courses.findMany({
+      // 🚀 THE FIX: Put the condition directly inside the where clause!
+      // If they are a student, it returns undefined, and Prisma fetches everything.
+      const courses = await prisma.courses.findMany({
+        where:
+          req.user.role === "instructor"
+            ? { instructor_id: req.user.id }
+            : undefined,
         include: {
           users: {
             select: { full_name: true, email: true, role: true },
           },
         },
       });
-      res.json({ success: true, data: allCourses });
+
+      res.json({ success: true, data: courses });
     } catch (error) {
       res
         .status(500)
         .json({ success: false, message: "Failed to fetch courses" });
+    }
+  },
+);
+
+// Protected Route: GET a single course with Modules and Lessons
+app.get(
+  "/api/courses/:id",
+  authenticateToken,
+  async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const course = await prisma.courses.findUnique({
+        where: { id: req.params.id },
+        include: {
+          modules: {
+            orderBy: { order: "asc" }, // Keeps them in the right order!
+            include: {
+              lessons: {
+                orderBy: { order: "asc" },
+              },
+            },
+          },
+        },
+      });
+
+      if (!course) {
+        res.status(404).json({ success: false, message: "Course not found" });
+        return;
+      }
+
+      res.json({ success: true, data: course });
+    } catch (error) {
+      res.status(500).json({ success: false, error: (error as Error).message });
     }
   },
 );
@@ -51,8 +90,7 @@ app.post(
     try {
       const { title, description, category, level, status } = req.body;
 
-      // 🚀 THE FIX: Auto-generate a unique URL slug!
-      // Converts "Dynamic Programming" -> "dynamic-programming-843"
+      // Auto-generate a unique URL slug!
       const generatedSlug =
         title
           .toLowerCase()
@@ -68,7 +106,7 @@ app.post(
           slug: generatedSlug,
           description,
           category,
-          level: level || "Beginner", // <-- THE FIX: Added fallback!
+          level: level || "Beginner",
           status: status || "draft",
           instructor_id: req.user.id,
         },
@@ -80,7 +118,6 @@ app.post(
         data: newCourse,
       });
     } catch (error) {
-      // Added this so future database errors print loudly in your terminal!
       console.error("COURSE CREATION ERROR:", error);
       res.status(500).json({ success: false, error: (error as Error).message });
     }
