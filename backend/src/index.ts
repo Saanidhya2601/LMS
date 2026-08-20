@@ -314,7 +314,52 @@ app.post(
     }
   },
 );
+// ---------------------------------------------------------
+// GET: Fetch students enrolled in a specific course (Instructors only)
+// ---------------------------------------------------------
+app.get(
+  "/api/courses/:courseId/students",
+  authenticateToken,
+  requireRole("instructor"),
+  async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const { courseId } = req.params;
 
+      // 1. Verify the course actually belongs to the instructor making the request
+      const course = await prisma.courses.findUnique({
+        where: { id: courseId },
+      });
+
+      if (!course || course.instructor_id !== req.user.id) {
+        res.status(403).json({
+          success: false,
+          message:
+            "Unauthorized. You can only view students for your own courses.",
+        });
+        return;
+      }
+
+      // 2. Fetch the enrollments and pull in the user's name and email
+      const enrollments = await prisma.enrollments.findMany({
+        where: { course_id: courseId },
+        include: {
+          users: {
+            select: {
+              id: true,
+              full_name: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      res.json({ success: true, data: enrollments });
+    } catch (error) {
+      console.error("FETCH STUDENTS ERROR:", error);
+      res.status(500).json({ success: false, error: (error as Error).message });
+    }
+  },
+);
 app.listen(PORT, () => {
   console.log(`Server is running live on http://localhost:${PORT}`);
 });
