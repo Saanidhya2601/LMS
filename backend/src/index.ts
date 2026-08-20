@@ -343,7 +343,8 @@ app.get(
       const enrollments = await prisma.enrollments.findMany({
         where: { course_id: courseId },
         include: {
-          users: {
+          // 🚀 THE FIX: Changed 'users' to 'user'
+          user: {
             select: {
               id: true,
               full_name: true,

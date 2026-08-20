@@ -40,6 +40,17 @@ interface Course {
   modules?: Module[];
 }
 
+// 🚀 NEW: Interface for our student data
+interface EnrolledStudent {
+  id: string;
+  created_at?: string;
+  // 🚀 THE FIX: Changed 'users' to 'user'
+  user: {
+    full_name: string;
+    email: string;
+  };
+}
+
 export default function ManageCourse() {
   const { courseId } = useParams();
   const navigate = useNavigate();
@@ -72,6 +83,10 @@ export default function ManageCourse() {
     status: "draft",
     level: "Beginner",
   });
+
+  // 🚀 NEW: State for students
+  const [students, setStudents] = useState<EnrolledStudent[]>([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -111,6 +126,30 @@ export default function ManageCourse() {
 
     fetchCourse();
   }, [courseId, navigate]);
+
+  // 🚀 NEW: Fetch students ONLY when the Instructor clicks the "Students" tab
+  useEffect(() => {
+    if (activeTab === "students" && courseId) {
+      const fetchStudents = async () => {
+        setLoadingStudents(true);
+        try {
+          const token = localStorage.getItem("token");
+          const response = await axios.get(
+            `http://localhost:5000/api/courses/${courseId}/students`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+          setStudents(response.data.data);
+        } catch (error) {
+          console.error("Failed to fetch students", error);
+        } finally {
+          setLoadingStudents(false);
+        }
+      };
+      fetchStudents();
+    }
+  }, [activeTab, courseId]);
 
   const handleUpdateCourse = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,7 +200,6 @@ export default function ManageCourse() {
     }
   };
 
-  // 🚀 NEW: Handle Deleting a Module
   const handleDeleteModule = async (moduleId: string) => {
     const isConfirmed = window.confirm(
       "Are you sure you want to delete this module and all of its lessons? This cannot be undone.",
@@ -174,7 +212,6 @@ export default function ManageCourse() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Update UI
       setModules(modules.filter((mod) => mod.id !== moduleId));
     } catch (error) {
       console.error("Failed to delete module:", error);
@@ -221,7 +258,6 @@ export default function ManageCourse() {
     }
   };
 
-  // 🚀 NEW: Handle Deleting a Lesson
   const handleDeleteLesson = async (moduleId: string, lessonId: string) => {
     const isConfirmed = window.confirm(
       "Are you sure you want to delete this lesson?",
@@ -234,7 +270,6 @@ export default function ManageCourse() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Update UI to remove just that lesson
       setModules(
         modules.map((mod) => {
           if (mod.id === moduleId) {
@@ -360,7 +395,6 @@ export default function ManageCourse() {
                         </div>
                       </div>
 
-                      {/* 🚀 UPGRADED: Delete Module Button */}
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => openLessonModal(module.id)}
@@ -398,7 +432,6 @@ export default function ManageCourse() {
                               </h4>
                             </div>
 
-                            {/* 🚀 UPGRADED: Delete Lesson Button */}
                             <div className="flex gap-3 items-center border-l border-white/5 pl-4">
                               <div className="flex gap-2">
                                 {lesson.video_url && (
@@ -472,7 +505,6 @@ export default function ManageCourse() {
               onSubmit={handleUpdateCourse}
               className="space-y-6 bg-slate-900/50 border border-white/10 p-6 rounded-2xl"
             >
-              {/* Same form logic as before... */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
                   Course Title
@@ -573,15 +605,63 @@ export default function ManageCourse() {
           </div>
         )}
 
-        {/* TAB 3: STUDENTS */}
+        {/* 🚀 UPGRADED TAB 3: STUDENTS */}
         {activeTab === "students" && (
           <div className="max-w-4xl">
             <h1 className="text-3xl font-bold mb-2">Enrolled Students</h1>
             <p className="text-slate-400 mb-8">
               View and manage the students taking this course.
             </p>
-            <div className="p-10 border-2 border-dashed border-white/10 rounded-2xl text-center text-slate-500">
-              Student data table coming up later!
+
+            <div className="bg-slate-900/50 border border-white/10 rounded-2xl overflow-hidden">
+              {loadingStudents ? (
+                <div className="p-10 text-center text-slate-500 animate-pulse">
+                  Loading student data...
+                </div>
+              ) : students.length === 0 ? (
+                <div className="p-10 border-2 border-dashed border-white/10 rounded-2xl text-center text-slate-500 bg-slate-900/50 m-4">
+                  No students have enrolled in this course yet.
+                </div>
+              ) : (
+                <table className="w-full text-left text-sm text-slate-300">
+                  <thead className="bg-slate-900/80 text-xs uppercase font-semibold text-slate-400 border-b border-white/10">
+                    <tr>
+                      <th className="px-6 py-4">Student Name</th>
+                      <th className="px-6 py-4">Email Address</th>
+                      <th className="px-6 py-4">Enrollment Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {students.map((enrollment) => (
+                      <tr
+                        key={enrollment.id}
+                        className="hover:bg-white/5 transition-colors"
+                      >
+                        <td className="px-6 py-4 font-medium text-white flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs border border-indigo-500/30">
+                            {enrollment.user.full_name.charAt(0).toUpperCase()}
+                          </div>
+                          {enrollment.user.full_name}
+                        </td>
+                        <td className="px-6 py-4 text-slate-400">
+                          {enrollment.user.email}
+                        </td>
+                        <td className="px-6 py-4 text-slate-400">
+                          {enrollment.created_at
+                            ? new Date(
+                                enrollment.created_at,
+                              ).toLocaleDateString(undefined, {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })
+                            : "N/A"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         )}
