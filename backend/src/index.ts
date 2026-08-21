@@ -47,6 +47,44 @@ app.get(
 );
 
 // Protected Route: GET a single course with Modules and Lessons
+// ---------------------------------------------------------
+// Protected Route: GET courses (Optimized Payload)
+// ---------------------------------------------------------
+app.get(
+  "/api/courses",
+  authenticateToken,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const courses = await prisma.courses.findMany({
+        where:
+          req.user.role === "instructor"
+            ? { instructor_id: req.user.id }
+            : { status: "published" },
+        // 🚀 OPTIMIZATION: Only grab the fields the Dashboard card actually uses!
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          category: true,
+          status: true,
+          users: {
+            select: { full_name: true }, // We don't need the instructor's email or password hash here!
+          },
+        },
+      });
+
+      res.json({ success: true, data: courses });
+    } catch (error) {
+      res
+        .status(500)
+        .json({ success: false, message: "Failed to fetch courses" });
+    }
+  },
+);
+
+// ---------------------------------------------------------
+// Protected Route: GET a single course (Optimized Payload)
+// ---------------------------------------------------------
 app.get(
   "/api/courses/:id",
   authenticateToken,
@@ -54,12 +92,29 @@ app.get(
     try {
       const course = await prisma.courses.findUnique({
         where: { id: req.params.id },
-        include: {
+        // 🚀 OPTIMIZATION: Strip out database timestamps and unnecessary relational IDs
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          category: true,
+          status: true,
+          level: true,
           modules: {
             orderBy: { order: "asc" },
-            include: {
+            select: {
+              id: true,
+              title: true,
+              order: true,
               lessons: {
                 orderBy: { order: "asc" },
+                select: {
+                  id: true,
+                  title: true,
+                  content: true,
+                  video_url: true,
+                  order: true,
+                },
               },
             },
           },
