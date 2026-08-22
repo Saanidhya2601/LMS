@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
 import {
   ArrowLeft,
   PlayCircle,
@@ -176,11 +177,8 @@ export default function CourseViewer() {
               </h1>
 
               {activeLesson.content ? (
-                <div className="prose prose-invert max-w-none prose-indigo prose-p:leading-relaxed prose-pre:bg-slate-900 prose-pre:border prose-pre:border-white/10">
-                  {/* For now, simply rendering the text. Later you can add a Markdown parser here! */}
-                  <p className="whitespace-pre-wrap text-slate-300 text-lg leading-loose">
-                    {activeLesson.content}
-                  </p>
+                <div className="prose prose-invert max-w-none prose-indigo prose-p:leading-relaxed prose-pre:bg-slate-900 prose-pre:border prose-pre:border-white/10 text-slate-300 text-lg">
+                  <ReactMarkdown>{activeLesson.content}</ReactMarkdown>
                 </div>
               ) : (
                 <p className="text-slate-500 italic">
