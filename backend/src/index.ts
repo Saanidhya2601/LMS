@@ -411,7 +411,6 @@ app.get(
 
       res.json({ success: true, data: enrollments });
     } catch (error) {
-      console.error("FETCH STUDENTS ERROR:", error);
       res.status(500).json({ success: false, error: (error as Error).message });
     }
   },
