@@ -40,6 +40,10 @@ export default function CourseViewer() {
   const [loading, setLoading] = useState(true);
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
 
+  // 🚀 New State: Tracks completed lessons
+  const [completedLessons, setCompletedLessons] = useState<string[]>([]);
+
+  // 1. Fetch the course data
   useEffect(() => {
     const fetchCourse = async () => {
       const token = localStorage.getItem("token");
@@ -74,6 +78,49 @@ export default function CourseViewer() {
     fetchCourse();
   }, [courseId, navigate]);
 
+  // 🚀 2. Fetch the student's progress
+  useEffect(() => {
+    const fetchProgress = async () => {
+      if (!courseId) return;
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(
+          `http://localhost:5000/api/courses/${courseId}/progress`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        if (response.data.success) {
+          setCompletedLessons(response.data.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch progress", error);
+      }
+    };
+
+    fetchProgress();
+  }, [courseId]);
+
+  // 🚀 3. Function to toggle lesson completion
+  const toggleLessonComplete = async (lessonId: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        `http://localhost:5000/api/lessons/${lessonId}/progress`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+
+      if (response.data.completed) {
+        // Add it to the array of completed lessons
+        setCompletedLessons((prev) => [...prev, lessonId]);
+      } else {
+        // Remove it from the array
+        setCompletedLessons((prev) => prev.filter((id) => id !== lessonId));
+      }
+    } catch (error) {
+      console.error("Failed to update progress", error);
+    }
+  };
+
   // Helper to extract a clean YouTube embed link if they provided one
   const getEmbedUrl = (url: string) => {
     if (!url) return null;
@@ -95,7 +142,7 @@ export default function CourseViewer() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col md:flex-row overflow-hidden">
-      {/* 🚀 LEFT SIDEBAR: Course Curriculum */}
+      {/* LEFT SIDEBAR: Course Curriculum */}
       <aside className="w-full md:w-80 border-r border-white/10 bg-slate-900/50 flex flex-col h-auto md:h-screen overflow-y-auto z-10 shrink-0">
         <div className="p-6 border-b border-white/10 sticky top-0 bg-slate-900 z-20">
           <button
@@ -116,6 +163,8 @@ export default function CourseViewer() {
               <div className="space-y-1">
                 {module.lessons?.map((lesson, lIndex) => {
                   const isActive = activeLesson?.id === lesson.id;
+                  const isCompleted = completedLessons.includes(lesson.id); // Check completion
+
                   return (
                     <button
                       key={lesson.id}
@@ -129,17 +178,29 @@ export default function CourseViewer() {
                       <div className="mt-0.5 shrink-0">
                         {lesson.video_url ? (
                           <PlayCircle
-                            className={`h-4 w-4 ${isActive ? "text-white" : "text-indigo-400"}`}
+                            className={`h-4 w-4 ${
+                              isActive ? "text-white" : "text-indigo-400"
+                            }`}
                           />
                         ) : (
                           <FileText
-                            className={`h-4 w-4 ${isActive ? "text-white" : "text-indigo-400"}`}
+                            className={`h-4 w-4 ${
+                              isActive ? "text-white" : "text-indigo-400"
+                            }`}
                           />
                         )}
                       </div>
-                      <span className="text-sm font-medium leading-snug">
+
+                      <span className="text-sm font-medium leading-snug flex-1 pr-2">
                         {lIndex + 1}. {lesson.title}
                       </span>
+
+                      {/* 🚀 Sidebar visual checkmark for completed lessons */}
+                      {isCompleted && (
+                        <CheckCircle
+                          className={`h-4 w-4 shrink-0 ${isActive ? "text-white" : "text-emerald-400"}`}
+                        />
+                      )}
                     </button>
                   );
                 })}
@@ -149,7 +210,7 @@ export default function CourseViewer() {
         </div>
       </aside>
 
-      {/* 🚀 MAIN CONTENT AREA: Video & Text Viewer */}
+      {/* MAIN CONTENT AREA: Video & Text Viewer */}
       <main className="flex-1 bg-[#0B0F19] h-screen overflow-y-auto">
         {activeLesson ? (
           <div className="max-w-5xl mx-auto">
@@ -171,7 +232,7 @@ export default function CourseViewer() {
             )}
 
             {/* Lesson Details Section */}
-            <div className="p-8 md:p-12">
+            <div className="p-8 md:p-12 pb-24">
               <h1 className="text-3xl md:text-4xl font-bold mb-8">
                 {activeLesson.title}
               </h1>
@@ -185,6 +246,26 @@ export default function CourseViewer() {
                   No written content available for this lesson.
                 </p>
               )}
+
+              {/* 🚀 The dynamic "Mark as Complete" Action Bar */}
+              <div className="mt-12 pt-6 border-t border-white/10 flex justify-between items-center">
+                <button
+                  onClick={() => toggleLessonComplete(activeLesson.id)}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 ${
+                    completedLessons.includes(activeLesson.id)
+                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
+                      : "bg-indigo-600 text-white hover:bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.3)]"
+                  }`}
+                >
+                  {completedLessons.includes(activeLesson.id) ? (
+                    <>
+                      <CheckCircle className="h-5 w-5" /> Completed
+                    </>
+                  ) : (
+                    "Mark as Complete"
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         ) : (
