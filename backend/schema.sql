@@ -1,5 +1,3 @@
-
-
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ---------- Enum types ----------
@@ -136,13 +134,13 @@ CREATE TRIGGER trg_lessons_updated_at
 -- ENROLLMENTS
 -- ============================================================
 CREATE TABLE enrollments (
-  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id               UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  course_id             UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
-  status                enrollment_status NOT NULL DEFAULT 'active',
-  progress_percentage   NUMERIC(5,2) NOT NULL DEFAULT 0,
-  enrolled_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
-  completed_at          TIMESTAMPTZ,
+  id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id              UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  course_id            UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+  status               enrollment_status NOT NULL DEFAULT 'active',
+  progress_percentage  NUMERIC(5,2) NOT NULL DEFAULT 0,
+  enrolled_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  completed_at         TIMESTAMPTZ,
   UNIQUE (user_id, course_id)
 );
 

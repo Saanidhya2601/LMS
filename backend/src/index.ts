@@ -217,7 +217,9 @@ app.put(
   },
 );
 
-// DELETE: Remove a course (Instructors only)
+// ---------------------------------------------------------
+// DELETE: Delete a course (Instructors only)
+// ---------------------------------------------------------
 app.delete(
   "/api/courses/:id",
   authenticateToken,
@@ -226,30 +228,37 @@ app.delete(
     try {
       const courseId = req.params.id;
 
-      const existingCourse = await prisma.courses.findUnique({
+      // 1. Verify the course belongs to this exact instructor
+      const course = await prisma.courses.findUnique({
         where: { id: courseId },
       });
 
-      if (!existingCourse) {
+      if (!course) {
         res.status(404).json({ success: false, message: "Course not found" });
         return;
       }
 
-      if (existingCourse.instructor_id !== req.user.id) {
-        res.status(403).json({
-          success: false,
-          message: "You can only delete your own courses",
-        });
+      if (course.instructor_id !== req.user.id) {
+        res
+          .status(403)
+          .json({
+            success: false,
+            message: "Unauthorized to delete this course",
+          });
         return;
       }
 
+      // 2. Delete it! (Your SQL schema handles the cascading deletes perfectly)
       await prisma.courses.delete({
         where: { id: courseId },
       });
 
-      res.json({ success: true, message: "Course deleted successfully" });
+      res.json({ success: true, message: "Course permanently deleted" });
     } catch (error) {
-      res.status(500).json({ success: false, error: (error as Error).message });
+      console.error("DELETE COURSE ERROR:", error);
+      res
+        .status(500)
+        .json({ success: false, error: "Failed to delete course" });
     }
   },
 );
@@ -410,6 +419,86 @@ app.get(
       });
 
       res.json({ success: true, data: enrollments });
+    } catch (error) {
+      res.status(500).json({ success: false, error: (error as Error).message });
+    }
+  },
+);
+// ---------------------------------------------------------
+// POST: Toggle Lesson Completion (Students only)
+// ---------------------------------------------------------
+app.post(
+  "/api/lessons/:lessonId/progress",
+  authenticateToken,
+  requireRole("student"),
+  async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const { lessonId } = req.params;
+      const userId = req.user.id;
+
+      // Check if they already completed it
+      const existingProgress = await prisma.lessonProgress.findUnique({
+        where: {
+          user_id_lesson_id: { user_id: userId, lesson_id: lessonId },
+        },
+      });
+
+      if (existingProgress) {
+        // If it exists, they are "un-completing" it
+        await prisma.lessonProgress.delete({
+          where: { id: existingProgress.id },
+        });
+        res.json({
+          success: true,
+          message: "Lesson marked as incomplete",
+          completed: false,
+        });
+      } else {
+        // If it doesn't exist, mark it as complete
+        await prisma.lessonProgress.create({
+          data: { user_id: userId, lesson_id: lessonId },
+        });
+        res.json({
+          success: true,
+          message: "Lesson marked as complete",
+          completed: true,
+        });
+      }
+    } catch (error) {
+      res.status(500).json({ success: false, error: (error as Error).message });
+    }
+  },
+);
+
+// ---------------------------------------------------------
+// GET: Fetch Student Progress for a Course (Students only)
+// ---------------------------------------------------------
+app.get(
+  "/api/courses/:courseId/progress",
+  authenticateToken,
+  requireRole("student"),
+  async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const { courseId } = req.params;
+      const userId = req.user.id;
+
+      // Find all completed lessons for this specific user in this specific course
+      const progress = await prisma.lessonProgress.findMany({
+        where: {
+          user_id: userId,
+          lesson: {
+            module: {
+              course_id: courseId,
+            },
+          },
+        },
+        select: { lesson_id: true },
+      });
+
+      // Map it down to just a simple array of IDs (e.g., ["lesson-1-id", "lesson-2-id"])
+      const completedLessonIds = progress.map((p) => p.lesson_id);
+
+      res.json({ success: true, data: completedLessonIds });
     } catch (error) {
       res.status(500).json({ success: false, error: (error as Error).message });
     }
