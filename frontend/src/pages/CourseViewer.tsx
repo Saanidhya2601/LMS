@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import {
   ArrowLeft,
-  ArrowRight, // 🚀 Add this!
+  ArrowRight,
   PlayCircle,
   FileText,
   CheckCircle,
@@ -133,6 +133,21 @@ export default function CourseViewer() {
       : url;
   };
 
+  // 🚀 Flatten all lessons into a single ordered array for navigation
+  const allLessons = course?.modules?.flatMap((m) => m.lessons) || [];
+
+  // 🚀 Find the current index to determine previous and next lessons
+  const currentLessonIndex = activeLesson
+    ? allLessons.findIndex((l) => l.id === activeLesson.id)
+    : -1;
+
+  const previousLesson =
+    currentLessonIndex > 0 ? allLessons[currentLessonIndex - 1] : null;
+  const nextLesson =
+    currentLessonIndex !== -1 && currentLessonIndex < allLessons.length - 1
+      ? allLessons[currentLessonIndex + 1]
+      : null;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-indigo-400">
@@ -248,24 +263,51 @@ export default function CourseViewer() {
                 </p>
               )}
 
-              {/* 🚀 The dynamic "Mark as Complete" Action Bar */}
-              <div className="mt-12 pt-6 border-t border-white/10 flex justify-between items-center">
-                <button
-                  onClick={() => toggleLessonComplete(activeLesson.id)}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 ${
-                    completedLessons.includes(activeLesson.id)
-                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
-                      : "bg-indigo-600 text-white hover:bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.3)]"
-                  }`}
-                >
-                  {completedLessons.includes(activeLesson.id) ? (
-                    <>
-                      <CheckCircle className="h-5 w-5" /> Completed
-                    </>
-                  ) : (
-                    "Mark as Complete"
+              {/* 🚀 The dynamic Navigation & Action Bar */}
+              <div className="mt-12 pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-6">
+                {/* Previous Button */}
+                <div className="w-full sm:w-1/3 flex justify-start">
+                  {previousLesson && (
+                    <button
+                      onClick={() => setActiveLesson(previousLesson)}
+                      className="flex items-center gap-2 text-slate-400 hover:text-indigo-400 transition-colors font-medium"
+                    >
+                      <ArrowLeft className="h-4 w-4" /> Previous Lesson
+                    </button>
                   )}
-                </button>
+                </div>
+
+                {/* Mark as Complete Button */}
+                <div className="w-full sm:w-1/3 flex justify-center">
+                  <button
+                    onClick={() => toggleLessonComplete(activeLesson.id)}
+                    className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 ${
+                      completedLessons.includes(activeLesson.id)
+                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
+                        : "bg-indigo-600 text-white hover:bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.3)]"
+                    }`}
+                  >
+                    {completedLessons.includes(activeLesson.id) ? (
+                      <>
+                        <CheckCircle className="h-5 w-5" /> Completed
+                      </>
+                    ) : (
+                      "Mark as Complete"
+                    )}
+                  </button>
+                </div>
+
+                {/* Next Button */}
+                <div className="w-full sm:w-1/3 flex justify-end">
+                  {nextLesson && (
+                    <button
+                      onClick={() => setActiveLesson(nextLesson)}
+                      className="flex items-center gap-2 text-slate-400 hover:text-indigo-400 transition-colors font-medium"
+                    >
+                      Next Lesson <ArrowRight className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

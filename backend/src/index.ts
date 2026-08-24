@@ -440,7 +440,7 @@ app.post(
       // 1. Find the lesson and its course ID via the module relation
       const lesson = await prisma.lessons.findUnique({
         where: { id: lessonId },
-        include: { modules: true },
+        include: { module: true },
       });
 
       if (!lesson) {
@@ -448,7 +448,7 @@ app.post(
         return;
       }
 
-      const courseId = lesson.modules?.course_id;
+      const courseId = lesson.module?.course_id;
 
       // 2. Find the student's enrollment for this course
       const enrollment = await prisma.enrollments.findFirst({
@@ -459,12 +459,10 @@ app.post(
       });
 
       if (!enrollment) {
-        res
-          .status(403)
-          .json({
-            success: false,
-            message: "You are not enrolled in this course.",
-          });
+        res.status(403).json({
+          success: false,
+          message: "You are not enrolled in this course.",
+        });
         return;
       }
 
@@ -511,7 +509,7 @@ app.post(
       // Count total lessons in this course
       const totalLessonsCount = await prisma.lessons.count({
         where: {
-          modules: {
+          module: {
             course_id: courseId,
           },
         },
