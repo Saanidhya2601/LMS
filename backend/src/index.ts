@@ -239,12 +239,10 @@ app.delete(
       }
 
       if (course.instructor_id !== req.user.id) {
-        res
-          .status(403)
-          .json({
-            success: false,
-            message: "Unauthorized to delete this course",
-          });
+        res.status(403).json({
+          success: false,
+          message: "Unauthorized to delete this course",
+        });
         return;
       }
 
@@ -427,6 +425,9 @@ app.get(
 // ---------------------------------------------------------
 // POST: Toggle Lesson Completion (Students only)
 // ---------------------------------------------------------
+// ---------------------------------------------------------
+// POST: Toggle Lesson Completion & Calculate Progress (Students only)
+// ---------------------------------------------------------
 app.post(
   "/api/lessons/:lessonId/progress",
   authenticateToken,
@@ -436,35 +437,120 @@ app.post(
       const { lessonId } = req.params;
       const userId = req.user.id;
 
-      // Check if they already completed it
-      const existingProgress = await prisma.lessonProgress.findUnique({
+      // 1. Find the lesson and its course ID via the module relation
+      const lesson = await prisma.lessons.findUnique({
+        where: { id: lessonId },
+        include: { modules: true },
+      });
+
+      if (!lesson) {
+        res.status(404).json({ success: false, message: "Lesson not found" });
+        return;
+      }
+
+      const courseId = lesson.modules?.course_id;
+
+      // 2. Find the student's enrollment for this course
+      const enrollment = await prisma.enrollments.findFirst({
         where: {
-          user_id_lesson_id: { user_id: userId, lesson_id: lessonId },
+          user_id: userId,
+          course_id: courseId,
         },
       });
 
-      if (existingProgress) {
-        // If it exists, they are "un-completing" it
-        await prisma.lessonProgress.delete({
-          where: { id: existingProgress.id },
-        });
-        res.json({
-          success: true,
-          message: "Lesson marked as incomplete",
-          completed: false,
-        });
-      } else {
-        // If it doesn't exist, mark it as complete
-        await prisma.lessonProgress.create({
-          data: { user_id: userId, lesson_id: lessonId },
-        });
-        res.json({
-          success: true,
-          message: "Lesson marked as complete",
-          completed: true,
-        });
+      if (!enrollment) {
+        res
+          .status(403)
+          .json({
+            success: false,
+            message: "You are not enrolled in this course.",
+          });
+        return;
       }
+
+      // 3. Check if progress record exists
+      const existingProgress = await prisma.lessonProgress.findUnique({
+        where: {
+          enrollment_id_lesson_id: {
+            enrollment_id: enrollment.id,
+            lesson_id: lessonId,
+          },
+        },
+      });
+
+      let isCompletedNow = false;
+
+      if (existingProgress && existingProgress.is_completed) {
+        // Toggle OFF
+        await prisma.lessonProgress.update({
+          where: { id: existingProgress.id },
+          data: { is_completed: false, completed_at: null },
+        });
+        isCompletedNow = false;
+      } else if (existingProgress) {
+        // Toggle ON
+        await prisma.lessonProgress.update({
+          where: { id: existingProgress.id },
+          data: { is_completed: true, completed_at: new Date() },
+        });
+        isCompletedNow = true;
+      } else {
+        // Create NEW record
+        await prisma.lessonProgress.create({
+          data: {
+            enrollment_id: enrollment.id,
+            lesson_id: lessonId,
+            is_completed: true,
+            completed_at: new Date(),
+          },
+        });
+        isCompletedNow = true;
+      }
+
+      // 🚀 4. AUTOMATIC PERCENTAGE CALCULATION
+      // Count total lessons in this course
+      const totalLessonsCount = await prisma.lessons.count({
+        where: {
+          modules: {
+            course_id: courseId,
+          },
+        },
+      });
+
+      // Count total completed lessons for this enrollment
+      const completedLessonsCount = await prisma.lessonProgress.count({
+        where: {
+          enrollment_id: enrollment.id,
+          is_completed: true,
+        },
+      });
+
+      // Calculate percentage (default to 0 if total is 0 to avoid division by zero)
+      const percentage =
+        totalLessonsCount > 0
+          ? Number(
+              ((completedLessonsCount / totalLessonsCount) * 100).toFixed(2),
+            )
+          : 0;
+
+      // Update the enrollment record with the new percentage
+      await prisma.enrollments.update({
+        where: { id: enrollment.id },
+        data: {
+          progress_percentage: percentage,
+          status: percentage === 100 ? "completed" : "active",
+          completed_at: percentage === 100 ? new Date() : null,
+        },
+      });
+
+      res.json({
+        success: true,
+        message: "Progress updated",
+        completed: isCompletedNow,
+        progress_percentage: percentage,
+      });
     } catch (error) {
+      console.error("PROGRESS ERROR:", error);
       res.status(500).json({ success: false, error: (error as Error).message });
     }
   },

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import {
   ArrowLeft,
+  ArrowRight, // 🚀 Add this!
   PlayCircle,
   FileText,
   CheckCircle,
