@@ -1,26 +1,37 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, LogOut, Plus, X, Trash2, UserPlus } from "lucide-react";
+import {
+  BookOpen,
+  LogOut,
+  Plus,
+  X,
+  Trash2,
+  UserPlus,
+  PlayCircle, // 🚀 Added for the "Continue" button
+  Award, // 🚀 Added for the "Completed" badge
+} from "lucide-react";
 
+// 🚀 1. Updated Interface to expect the new progress data
 interface Course {
   id: string;
   title: string;
   description: string;
   category: string;
   status: string;
-  users?: { full_name: string }; // Instructor's name
+  users?: { full_name: string };
+  is_enrolled?: boolean;
+  progress_percentage?: number;
+  enrollment_status?: string;
 }
 
 export default function Dashboard() {
   const [courses, setCourses] = useState<Course[]>([]);
   const navigate = useNavigate();
 
-  // Get the logged-in user to figure out their role
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const isInstructor = user.role === "instructor";
 
-  // Modal & Form State (Only used by instructors)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -106,7 +117,6 @@ export default function Dashboard() {
     }
   };
 
-  // Handle Student Enrollment
   const handleEnroll = async (courseId: string) => {
     try {
       const token = localStorage.getItem("token");
@@ -168,7 +178,6 @@ export default function Dashboard() {
             </p>
           </div>
 
-          {/* Only Instructors get the Create button */}
           {isInstructor && (
             <button
               onClick={() => setIsModalOpen(true)}
@@ -198,9 +207,14 @@ export default function Dashboard() {
               >
                 <div className="h-40 bg-slate-950 flex items-center justify-center border-b border-white/5 relative overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
-                  <BookOpen className="h-10 w-10 text-slate-800 group-hover:text-indigo-500/40 transition-colors duration-200 relative z-10" />
 
-                  {/* Only Instructors get the Delete button */}
+                  {/* Show a completed badge if they are at 100% */}
+                  {course.progress_percentage === 100 ? (
+                    <Award className="h-12 w-12 text-emerald-500 opacity-90 transition-transform duration-500 group-hover:scale-110 relative z-10" />
+                  ) : (
+                    <BookOpen className="h-10 w-10 text-slate-800 group-hover:text-indigo-500/40 transition-colors duration-500 relative z-10" />
+                  )}
+
                   {isInstructor && (
                     <button
                       onClick={() => handleDeleteCourse(course.id)}
@@ -218,7 +232,6 @@ export default function Dashboard() {
                       {course.category}
                     </span>
 
-                    {/* Status / Instructor metadata */}
                     {isInstructor ? (
                       <span
                         className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-widest border ${
@@ -245,13 +258,58 @@ export default function Dashboard() {
 
                   <div className="pt-4 border-t border-white/5 mt-auto">
                     {isInstructor ? (
+                      // 🚀 INSTRUCTOR VIEW
                       <button
                         onClick={() => navigate(`/manage-course/${course.id}`)}
                         className="w-full text-center text-sm font-semibold text-slate-300 hover:text-white transition-colors duration-150 py-2.5 bg-white/5 rounded-lg hover:bg-white/10"
                       >
                         Manage Course
                       </button>
+                    ) : course.is_enrolled ? (
+                      // 🚀 STUDENT VIEW: ENROLLED (Show Progress Bar)
+                      <div className="w-full flex flex-col gap-3">
+                        <div className="flex justify-between items-center text-xs font-semibold">
+                          <span className="text-slate-400">Progress</span>
+                          <span
+                            className={
+                              course.progress_percentage === 100
+                                ? "text-emerald-400"
+                                : "text-indigo-400"
+                            }
+                          >
+                            {course.progress_percentage}%
+                          </span>
+                        </div>
+                        {/* The animated bar */}
+                        <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className={`${course.progress_percentage === 100 ? "bg-emerald-500" : "bg-indigo-500"} h-1.5 rounded-full transition-all duration-1000 ease-out`}
+                            style={{ width: `${course.progress_percentage}%` }}
+                          ></div>
+                        </div>
+                        {/* Dynamic Button */}
+                        <button
+                          onClick={() => navigate(`/learn/${course.id}`)}
+                          className={`w-full flex justify-center items-center gap-2 text-sm font-semibold transition-colors duration-150 py-2.5 rounded-lg mt-1 border ${
+                            course.progress_percentage === 100
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500 hover:text-white"
+                              : "bg-indigo-600 text-white border-transparent hover:bg-indigo-500 shadow-sm"
+                          }`}
+                        >
+                          {course.progress_percentage === 100 ? (
+                            <>
+                              <Award className="h-4 w-4" /> Review Course
+                            </>
+                          ) : (
+                            <>
+                              <PlayCircle className="h-4 w-4" /> Continue
+                              Learning
+                            </>
+                          )}
+                        </button>
+                      </div>
                     ) : (
+                      // 🚀 STUDENT VIEW: NOT ENROLLED
                       <button
                         onClick={() => handleEnroll(course.id)}
                         className="w-full flex justify-center items-center gap-2 text-sm font-semibold text-indigo-400 hover:text-white transition-colors duration-150 py-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg hover:bg-indigo-500 hover:border-indigo-500 shadow-sm"
