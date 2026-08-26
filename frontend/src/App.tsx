@@ -3,7 +3,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import ManageCourse from "./pages/ManageCourse";
-import CourseViewer from "./pages/CourseViewer"; 
+import CourseViewer from "./pages/CourseViewer";  
 
 function App() {
   return (

@@ -1,15 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import {
-  BookOpen,
-  LogOut,
-  Plus,
-  X,
-  Trash2,
-  UserPlus,
-  CheckCircle,
-} from "lucide-react";
+import { BookOpen, LogOut, Plus, X, Trash2, UserPlus } from "lucide-react";
 
 interface Course {
   id: string;
@@ -24,7 +16,7 @@ export default function Dashboard() {
   const [courses, setCourses] = useState<Course[]>([]);
   const navigate = useNavigate();
 
-  // 🚀 Get the logged-in user to figure out their role
+  // Get the logged-in user to figure out their role
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const isInstructor = user.role === "instructor";
 
@@ -114,7 +106,7 @@ export default function Dashboard() {
     }
   };
 
-  // 🚀 NEW: Handle Student Enrollment
+  // Handle Student Enrollment
   const handleEnroll = async (courseId: string) => {
     try {
       const token = localStorage.getItem("token");
@@ -125,10 +117,8 @@ export default function Dashboard() {
           headers: { Authorization: `Bearer ${token}` },
         },
       );
-      // Teleport instantly on success!
       navigate(`/learn/${courseId}`);
     } catch (error: any) {
-      // If they are ALREADY enrolled (Backend throws a 400), just let them into the classroom anyway!
       if (error.response?.status === 400) {
         navigate(`/learn/${courseId}`);
       } else {
@@ -157,7 +147,7 @@ export default function Dashboard() {
           </span>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 text-slate-400 hover:text-red-400 transition-colors font-medium text-sm bg-white/5 hover:bg-white/10 px-4 py-2.5 rounded-lg border border-transparent hover:border-red-500/20"
+            className="flex items-center gap-2 text-slate-400 hover:text-red-400 transition-colors duration-150 font-medium text-sm bg-white/5 hover:bg-white/10 px-4 py-2.5 rounded-lg border border-transparent hover:border-red-500/20"
           >
             <LogOut className="h-4 w-4" />
             Logout
@@ -182,7 +172,7 @@ export default function Dashboard() {
           {isInstructor && (
             <button
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-indigo-500 transition-all duration-300 shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.6)]"
+              className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-indigo-500 transition-colors duration-200 shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.6)]"
             >
               <Plus className="h-5 w-5" />
               Create Course
@@ -204,17 +194,17 @@ export default function Dashboard() {
             courses.map((course) => (
               <div
                 key={course.id}
-                className="group bg-slate-900 border border-white/10 rounded-2xl overflow-hidden hover:border-indigo-500/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(79,70,229,0.15)] flex flex-col"
+                className="group bg-slate-900 border border-white/10 rounded-2xl overflow-hidden hover:border-indigo-500/50 transition-colors duration-200 hover:shadow-[0_0_30px_rgba(79,70,229,0.15)] flex flex-col"
               >
                 <div className="h-40 bg-slate-950 flex items-center justify-center border-b border-white/5 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <BookOpen className="h-10 w-10 text-slate-800 group-hover:text-indigo-500/40 transition-colors duration-500 relative z-10" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                  <BookOpen className="h-10 w-10 text-slate-800 group-hover:text-indigo-500/40 transition-colors duration-200 relative z-10" />
 
                   {/* Only Instructors get the Delete button */}
                   {isInstructor && (
                     <button
                       onClick={() => handleDeleteCourse(course.id)}
-                      className="absolute top-3 right-3 p-2 bg-slate-900/80 text-slate-400 rounded-lg hover:bg-red-500 hover:text-white transition-all duration-300 z-20 opacity-0 group-hover:opacity-100 border border-white/10 hover:border-red-500"
+                      className="absolute top-3 right-3 p-2 bg-slate-900/80 text-slate-400 rounded-lg hover:bg-red-500 hover:text-white transition-colors duration-150 z-20 opacity-0 group-hover:opacity-100 border border-white/10 hover:border-red-500"
                       title="Delete Course"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -228,10 +218,14 @@ export default function Dashboard() {
                       {course.category}
                     </span>
 
-                    {/* Show Draft/Published badge for Instructors. Show Instructor Name for Students */}
+                    {/* Status / Instructor metadata */}
                     {isInstructor ? (
                       <span
-                        className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-widest border ${course.status === "published" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20"}`}
+                        className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-widest border ${
+                          course.status === "published"
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                            : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                        }`}
                       >
                         {course.status}
                       </span>
@@ -242,7 +236,7 @@ export default function Dashboard() {
                     )}
                   </div>
 
-                  <h3 className="text-xl font-bold text-white mb-2 leading-snug group-hover:text-indigo-300 transition-colors">
+                  <h3 className="text-xl font-bold text-white mb-2 leading-snug group-hover:text-indigo-300 transition-colors duration-150">
                     {course.title}
                   </h3>
                   <p className="text-sm text-slate-400 line-clamp-2 mb-6 flex-1 leading-relaxed">
@@ -253,14 +247,14 @@ export default function Dashboard() {
                     {isInstructor ? (
                       <button
                         onClick={() => navigate(`/manage-course/${course.id}`)}
-                        className="w-full text-center text-sm font-semibold text-slate-300 hover:text-white transition-colors py-2.5 bg-white/5 rounded-lg hover:bg-white/10"
+                        className="w-full text-center text-sm font-semibold text-slate-300 hover:text-white transition-colors duration-150 py-2.5 bg-white/5 rounded-lg hover:bg-white/10"
                       >
                         Manage Course
                       </button>
                     ) : (
                       <button
                         onClick={() => handleEnroll(course.id)}
-                        className="w-full flex justify-center items-center gap-2 text-sm font-semibold text-indigo-400 hover:text-white transition-colors py-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg hover:bg-indigo-500 hover:border-indigo-500 shadow-sm"
+                        className="w-full flex justify-center items-center gap-2 text-sm font-semibold text-indigo-400 hover:text-white transition-colors duration-150 py-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg hover:bg-indigo-500 hover:border-indigo-500 shadow-sm"
                       >
                         <UserPlus className="h-4 w-4" /> Enroll Now
                       </button>
@@ -273,18 +267,17 @@ export default function Dashboard() {
         </div>
       </main>
 
-      {/* Instructor's Create Modal Overlay (Unchanged) */}
+      {/* Instructor's Create Modal Overlay */}
       {isModalOpen && isInstructor && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          {/* ... (Your existing modal code remains exactly the same here) ... */}
-          <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-150">
             <div className="flex justify-between items-center p-6 border-b border-white/10">
               <h2 className="text-xl font-bold text-white">
                 Create New Course
               </h2>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-white transition-colors p-1 rounded-md hover:bg-white/10"
+                className="text-slate-400 hover:text-white transition-colors duration-150 p-1 rounded-md hover:bg-white/10"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -301,7 +294,7 @@ export default function Dashboard() {
                   onChange={(e) =>
                     setFormData({ ...formData, title: e.target.value })
                   }
-                  className="w-full px-4 py-2 bg-white/5 border border-white/10 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-colors duration-150"
                   placeholder="e.g., Advanced React Patterns"
                 />
               </div>
@@ -316,7 +309,7 @@ export default function Dashboard() {
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  className="w-full px-4 py-2 bg-white/5 border border-white/10 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all resize-none"
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-colors duration-150 resize-none"
                   placeholder="What will students learn?"
                 />
               </div>
@@ -332,7 +325,7 @@ export default function Dashboard() {
                     onChange={(e) =>
                       setFormData({ ...formData, category: e.target.value })
                     }
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                    className="w-full px-4 py-2 bg-white/5 border border-white/10 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-colors duration-150"
                     placeholder="e.g., Programming"
                   />
                 </div>
@@ -345,7 +338,7 @@ export default function Dashboard() {
                     onChange={(e) =>
                       setFormData({ ...formData, status: e.target.value })
                     }
-                    className="w-full px-4 py-2 bg-slate-800 border border-white/10 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all appearance-none"
+                    className="w-full px-4 py-2 bg-slate-800 border border-white/10 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-colors duration-150 appearance-none"
                   >
                     <option value="draft">Draft</option>
                     <option value="published">Published</option>
@@ -361,14 +354,14 @@ export default function Dashboard() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-slate-300 hover:text-white hover:bg-white/5 rounded-lg font-medium transition-colors"
+                  className="px-4 py-2 text-slate-300 hover:text-white hover:bg-white/5 rounded-lg font-medium transition-colors duration-150"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-indigo-500 disabled:opacity-50 transition-all"
+                  className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-indigo-500 disabled:opacity-50 transition-colors duration-150"
                 >
                   {isSubmitting ? "Saving..." : "Save Course"}
                 </button>

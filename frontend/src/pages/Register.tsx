@@ -122,7 +122,7 @@ export default function Register() {
               <button
                 type="button"
                 onClick={() => setRole("student")}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-all duration-300 border ${
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition duration-300 border ${
                   role === "student"
                     ? "bg-indigo-600/20 border-indigo-500 text-indigo-400 shadow-[0_0_15px_rgba(79,70,229,0.2)]"
                     : "bg-slate-900/50 border-white/5 text-slate-400 hover:bg-white/5"
@@ -135,7 +135,7 @@ export default function Register() {
               <button
                 type="button"
                 onClick={() => setRole("instructor")}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-all duration-300 border ${
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition duration-300 border ${
                   role === "instructor"
                     ? "bg-emerald-600/20 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
                     : "bg-slate-900/50 border-white/5 text-slate-400 hover:bg-white/5"
@@ -157,7 +157,7 @@ export default function Register() {
                 <input
                   type="text"
                   required
-                  className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/10 text-white placeholder:text-slate-500 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                  className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/10 text-white placeholder:text-slate-500 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
                   placeholder="Jane Doe"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -176,7 +176,7 @@ export default function Register() {
                 <input
                   type="email"
                   required
-                  className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/10 text-white placeholder:text-slate-500 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                  className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/10 text-white placeholder:text-slate-500 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
                   placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -195,7 +195,7 @@ export default function Register() {
                 <input
                   type="password"
                   required
-                  className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/10 text-white placeholder:text-slate-500 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                  className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/10 text-white placeholder:text-slate-500 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -214,7 +214,7 @@ export default function Register() {
                 <input
                   type="password"
                   required
-                  className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/10 text-white placeholder:text-slate-500 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                  className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/10 text-white placeholder:text-slate-500 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
                   placeholder="••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -225,7 +225,7 @@ export default function Register() {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full text-white font-semibold py-3 px-4 rounded-lg transition-all shadow-lg ${
+              className={`w-full text-white font-semibold py-3 px-4 rounded-lg transition shadow-lg ${
                 role === "instructor"
                   ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30"
                   : "bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30"

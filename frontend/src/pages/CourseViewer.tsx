@@ -185,11 +185,12 @@ export default function CourseViewer() {
                     <button
                       key={lesson.id}
                       onClick={() => setActiveLesson(lesson)}
-                      className={`w-full flex items-start gap-3 p-3 rounded-xl text-left transition-all ${
-                        isActive
-                          ? "bg-indigo-600 text-white shadow-lg"
-                          : "hover:bg-white/5 text-slate-300"
-                      }`}
+                      className={`w-full flex items-start gap-3 p-3 rounded-xl text-left transition-colors
+                         ${
+                           isActive
+                             ? "bg-indigo-600 text-white shadow-lg"
+                             : "hover:bg-white/5 text-slate-300"
+                         }`}
                     >
                       <div className="mt-0.5 shrink-0">
                         {lesson.video_url ? (
@@ -281,7 +282,7 @@ export default function CourseViewer() {
                 <div className="w-full sm:w-1/3 flex justify-center">
                   <button
                     onClick={() => toggleLessonComplete(activeLesson.id)}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 ${
+                    className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-colors duration-200 ${
                       completedLessons.includes(activeLesson.id)
                         ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
                         : "bg-indigo-600 text-white hover:bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.3)]"

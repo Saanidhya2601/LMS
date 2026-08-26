@@ -305,19 +305,19 @@ export default function ManageCourse() {
         <nav className="flex-1 p-4 space-y-2">
           <button
             onClick={() => setActiveTab("curriculum")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${activeTab === "curriculum" ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" : "text-slate-400 hover:bg-white/5 hover:text-white border border-transparent"}`}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition ${activeTab === "curriculum" ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" : "text-slate-400 hover:bg-white/5 hover:text-white border border-transparent"}`}
           >
             <BookOpen className="h-5 w-5" /> Curriculum
           </button>
           <button
             onClick={() => setActiveTab("settings")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${activeTab === "settings" ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" : "text-slate-400 hover:bg-white/5 hover:text-white border border-transparent"}`}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition ${activeTab === "settings" ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" : "text-slate-400 hover:bg-white/5 hover:text-white border border-transparent"}`}
           >
             <Settings className="h-5 w-5" /> Settings
           </button>
           <button
             onClick={() => setActiveTab("students")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${activeTab === "students" ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" : "text-slate-400 hover:bg-white/5 hover:text-white border border-transparent"}`}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition ${activeTab === "students" ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" : "text-slate-400 hover:bg-white/5 hover:text-white border border-transparent"}`}
           >
             <Users className="h-5 w-5" /> Students
           </button>
