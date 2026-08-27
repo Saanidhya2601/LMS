@@ -74,8 +74,10 @@ model Enrollments {
   user_id     String
   user        Users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
   course_id   String
+  progress_percentage Float     @default(0)
+  status              String    @default("active")
+  completed_at        DateTime?
   course      Courses   @relation(fields: [course_id], references: [id], onDelete: Cascade)
-  status      String    @default("active") // active, completed, dropped
   created_at  DateTime  @default(now())
 
   // A user can only enroll in a specific course once
