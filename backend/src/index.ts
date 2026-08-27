@@ -587,7 +587,93 @@ app.get(
     }
   },
 );
+// ---------------------------------------------------------
+// GET: Instructor Analytics Dashboard
+// ---------------------------------------------------------
+app.get(
+  "/api/instructor/analytics",
+  authenticateToken,
+  requireRole("instructor"),
+  async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const instructorId = req.user.id;
 
+      // 1. Fetch all courses by this instructor, including their enrollments
+      const courses = await prisma.courses.findMany({
+        where: { instructor_id: instructorId },
+        include: {
+          enrollments: {
+            select: {
+              progress_percentage: true,
+              status: true,
+            },
+          },
+        },
+      });
+
+      let totalEnrollments = 0;
+      let totalProgressSum = 0;
+      let completedEnrollments = 0;
+
+      // 2. Calculate stats per course & aggregate total stats
+      const courseStats = courses.map((course) => {
+        const enrollmentsCount = course.enrollments.length;
+        totalEnrollments += enrollmentsCount;
+
+        let courseProgressSum = 0;
+        let courseCompleted = 0;
+
+        course.enrollments.forEach((enrollment) => {
+          courseProgressSum += enrollment.progress_percentage;
+          totalProgressSum += enrollment.progress_percentage;
+
+          if (enrollment.status === "completed") {
+            courseCompleted += 1;
+            completedEnrollments += 1;
+          }
+        });
+
+        const courseAvgProgress =
+          enrollmentsCount > 0
+            ? (courseProgressSum / enrollmentsCount).toFixed(1)
+            : 0;
+
+        return {
+          id: course.id,
+          title: course.title,
+          status: course.status,
+          enrollments: enrollmentsCount,
+          completions: courseCompleted,
+          avg_progress: Number(courseAvgProgress),
+        };
+      });
+
+      // 3. Final Overall Calculations
+      const overallAvgProgress =
+        totalEnrollments > 0
+          ? (totalProgressSum / totalEnrollments).toFixed(1)
+          : 0;
+
+      res.json({
+        success: true,
+        data: {
+          overview: {
+            total_courses: courses.length,
+            total_enrollments: totalEnrollments,
+            total_completions: completedEnrollments,
+            overall_avg_progress: Number(overallAvgProgress),
+          },
+          course_breakdown: courseStats,
+        },
+      });
+    } catch (error) {
+      console.error("ANALYTICS ERROR:", error);
+      res
+        .status(500)
+        .json({ success: false, error: "Failed to fetch analytics" });
+    }
+  },
+);
 app.listen(PORT, () => {
   console.log(`Server is running live on http://localhost:${PORT}`);
 });

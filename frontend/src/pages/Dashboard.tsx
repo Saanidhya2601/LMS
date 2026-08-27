@@ -8,11 +8,12 @@ import {
   X,
   Trash2,
   UserPlus,
-  PlayCircle, // 🚀 Added for the "Continue" button
-  Award, // 🚀 Added for the "Completed" badge
+  PlayCircle,
+  Award,
+  BarChart3, // 🚀 Added for the Analytics button
 } from "lucide-react";
 
-// 🚀 1. Updated Interface to expect the new progress data
+// 🚀 Updated Interface to expect the new progress data
 interface Course {
   id: string;
   title: string;
@@ -178,14 +179,25 @@ export default function Dashboard() {
             </p>
           </div>
 
+          {/* 🚀 New Instructor Action Buttons Container */}
           {isInstructor && (
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-indigo-500 transition-colors duration-200 shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.6)]"
-            >
-              <Plus className="h-5 w-5" />
-              Create Course
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate("/analytics")}
+                className="flex items-center gap-2 bg-white/5 text-slate-300 px-5 py-2.5 rounded-lg font-semibold hover:bg-white/10 hover:text-white border border-white/10 transition-colors duration-200"
+              >
+                <BarChart3 className="h-5 w-5 text-indigo-400" />
+                Analytics
+              </button>
+
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-indigo-500 transition-colors duration-200 shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.6)]"
+              >
+                <Plus className="h-5 w-5" />
+                Create Course
+              </button>
+            </div>
           )}
         </div>
 
