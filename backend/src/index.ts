@@ -674,6 +674,150 @@ app.get(
     }
   },
 );
+// 1. POST: Create a Quiz (Instructors only)
+app.post(
+  "/api/lessons/:lessonId/quiz",
+  authenticateToken,
+  requireRole("instructor"),
+  async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const { lessonId } = req.params;
+      const { pass_score, questions } = req.body;
+
+      // Check if a quiz already exists and delete it (Allows instructors to overwrite)
+      const existingQuiz = await prisma.quizzes.findUnique({
+        where: { lesson_id: lessonId },
+      });
+
+      if (existingQuiz) {
+        await prisma.quizzes.delete({ where: { id: existingQuiz.id } });
+      }
+
+      // Create the new quiz with all its nested questions and options!
+      const newQuiz = await prisma.quizzes.create({
+        data: {
+          lesson_id: lessonId,
+          pass_score: pass_score || 80, // Default passing grade is 80%
+          questions: {
+            create: questions.map((q: any) => ({
+              text: q.text,
+              options: {
+                create: q.options.map((o: any) => ({
+                  text: o.text,
+                  is_correct: o.is_correct,
+                })),
+              },
+            })),
+          },
+        },
+        include: { questions: { include: { options: true } } },
+      });
+
+      res.status(201).json({ success: true, data: newQuiz });
+    } catch (error) {
+      console.error("CREATE QUIZ ERROR:", error);
+      res.status(500).json({ success: false, error: (error as Error).message });
+    }
+  },
+);
+
+// 2. GET: Fetch Quiz for a Lesson (Students & Instructors)
+app.get(
+  "/api/lessons/:lessonId/quiz",
+  authenticateToken,
+  async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const { lessonId } = req.params;
+
+      const quiz = await prisma.quizzes.findUnique({
+        where: { lesson_id: lessonId },
+        include: { questions: { include: { options: true } } },
+      });
+
+      if (!quiz) {
+        res.json({ success: true, data: null });
+        return;
+      }
+
+      // 🚨 ANTI-CHEAT SYSTEM: If a student requests the quiz, strip out the answers!
+      if (req.user.role === "student") {
+        const sanitizedQuiz = {
+          ...quiz,
+          questions: quiz.questions.map((q) => ({
+            ...q,
+            options: q.options.map((o) => ({
+              id: o.id,
+              text: o.text,
+              // Notice we purposely DO NOT send `is_correct` back to the student!
+            })),
+          })),
+        };
+        res.json({ success: true, data: sanitizedQuiz });
+        return;
+      }
+
+      // Instructors get the full payload (so they can edit it later)
+      res.json({ success: true, data: quiz });
+    } catch (error) {
+      res.status(500).json({ success: false, error: (error as Error).message });
+    }
+  },
+);
+
+// 3. POST: Submit Quiz Answers (Students only)
+app.post(
+  "/api/quizzes/:quizId/submit",
+  authenticateToken,
+  requireRole("student"),
+  async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const { quizId } = req.params;
+      const { answers } = req.body; // An array of Option IDs the student selected
+
+      const quiz = await prisma.quizzes.findUnique({
+        where: { id: quizId },
+        include: { questions: { include: { options: true } } },
+      });
+
+      if (!quiz) {
+        res.status(404).json({ success: false, message: "Quiz not found" });
+        return;
+      }
+
+      let correctCount = 0;
+      const totalQuestions = quiz.questions.length;
+
+      // Grade the test securely on the backend
+      quiz.questions.forEach((question) => {
+        const correctOption = question.options.find((o) => o.is_correct);
+        // If the student's answers array includes the correct option's ID, they got it right!
+        if (correctOption && answers.includes(correctOption.id)) {
+          correctCount++;
+        }
+      });
+
+      // Calculate the final score
+      const score =
+        totalQuestions > 0
+          ? Math.round((correctCount / totalQuestions) * 100)
+          : 0;
+      const passed = score >= quiz.pass_score;
+
+      res.json({
+        success: true,
+        data: {
+          score,
+          passed,
+          pass_score: quiz.pass_score,
+          correctCount,
+          totalQuestions,
+        },
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, error: (error as Error).message });
+    }
+  },
+);
 app.listen(PORT, () => {
   console.log(`Server is running live on http://localhost:${PORT}`);
 });
