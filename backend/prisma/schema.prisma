@@ -54,46 +54,81 @@ model Modules {
   lessons     Lessons[]
 }
 
+// 🚀 Fixed: Changed from 'lessons' to 'Lessons'
 model Lessons {
-  id          String    @id @default(uuid())
+  id          String   @id @default(uuid())
   module_id   String
-  module      Modules   @relation(fields: [module_id], references: [id], onDelete: Cascade)
   title       String
   video_url   String?
-  content     String?   // For text-based lesson notes
+  content     String?
   order       Int
-  created_at  DateTime  @default(now())
-  updated_at  DateTime  @updatedAt
+  created_at  DateTime @default(now())
 
-  // Relationships
-  progress    LessonProgress[]
+  module          Modules          @relation(fields: [module_id], references: [id], onDelete: Cascade)
+  lesson_progress LessonProgress[]
+  
+  quiz            Quizzes?
 }
 
 model Enrollments {
-  id          String    @id @default(uuid())
-  user_id     String
-  user        Users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  course_id   String
+  id                  String    @id @default(uuid())
+  user_id             String
+  user                Users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  course_id           String
   progress_percentage Float     @default(0)
   status              String    @default("active")
   completed_at        DateTime?
-  course      Courses   @relation(fields: [course_id], references: [id], onDelete: Cascade)
-  created_at  DateTime  @default(now())
+  course              Courses   @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  created_at          DateTime  @default(now())
 
   // A user can only enroll in a specific course once
   @@unique([user_id, course_id])
 }
 
 model LessonProgress {
-  id          String    @id @default(uuid())
-  user_id     String
-  user        Users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  lesson_id   String
-  lesson      Lessons   @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
-  is_completed Boolean  @default(false)
-  created_at  DateTime  @default(now())
-  updated_at  DateTime  @updatedAt
+  id           String    @id @default(uuid())
+  user_id      String
+  user         Users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  lesson_id    String
+  lesson       Lessons   @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+  is_completed Boolean   @default(false)
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
 
   // A user can only have one progress record per lesson
   @@unique([user_id, lesson_id])
+}
+
+// ---------------------------------------------------------
+// QUIZ ENGINE TABLES
+// ---------------------------------------------------------
+
+// 🚀 Fixed: Capitalized Quizzes, Questions, and Options
+model Quizzes {
+  id          String   @id @default(uuid())
+  lesson_id   String   @unique
+  pass_score  Int      @default(80) // Percentage required to pass
+  created_at  DateTime @default(now())
+
+  lesson      Lessons  @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+  questions   Questions[]
+}
+
+model Questions {
+  id          String   @id @default(uuid())
+  quiz_id     String
+  text        String
+  created_at  DateTime @default(now())
+
+  quiz        Quizzes  @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
+  options     Options[]
+}
+
+model Options {
+  id          String   @id @default(uuid())
+  question_id String
+  text        String
+  is_correct  Boolean  @default(false)
+
+  question    Questions @relation(fields: [question_id], references: [id], onDelete: Cascade)
 }
