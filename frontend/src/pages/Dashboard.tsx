@@ -10,10 +10,10 @@ import {
   UserPlus,
   PlayCircle,
   Award,
-  BarChart3, // 🚀 Added for the Analytics button
+  BarChart3,
+  Settings,
 } from "lucide-react";
 
-// 🚀 Updated Interface to expect the new progress data
 interface Course {
   id: string;
   title: string;
@@ -149,16 +149,27 @@ export default function Dashboard() {
             LMS Dashboard
           </span>
         </div>
-        <div className="flex items-center gap-6">
+
+        <div className="flex items-center gap-4 sm:gap-6">
           <span className="text-sm font-medium text-slate-400 hidden sm:block">
             Welcome, <span className="text-white">{user.full_name}</span>
             <span className="ml-2 text-[10px] bg-slate-800 px-2 py-1 rounded-full uppercase tracking-wider">
               {user.role}
             </span>
           </span>
+
+          <button
+            onClick={() => navigate("/settings")}
+            className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors font-medium text-sm bg-white/5 hover:bg-white/10 px-3.5 py-2 rounded-lg border border-white/5"
+            title="Account Settings"
+          >
+            <Settings className="h-4 w-4 text-indigo-400" />
+            <span className="hidden sm:inline">Settings</span>
+          </button>
+
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 text-slate-400 hover:text-red-400 transition-colors duration-150 font-medium text-sm bg-white/5 hover:bg-white/10 px-4 py-2.5 rounded-lg border border-transparent hover:border-red-500/20"
+            className="flex items-center gap-2 text-slate-400 hover:text-red-400 transition-colors font-medium text-sm bg-white/5 hover:bg-white/10 px-3.5 py-2 rounded-lg border border-transparent hover:border-red-500/20"
           >
             <LogOut className="h-4 w-4" />
             Logout
@@ -179,7 +190,6 @@ export default function Dashboard() {
             </p>
           </div>
 
-          {/* 🚀 New Instructor Action Buttons Container */}
           {isInstructor && (
             <div className="flex items-center gap-3">
               <button
@@ -220,7 +230,6 @@ export default function Dashboard() {
                 <div className="h-40 bg-slate-950 flex items-center justify-center border-b border-white/5 relative overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
 
-                  {/* Show a completed badge if they are at 100% */}
                   {course.progress_percentage === 100 ? (
                     <Award className="h-12 w-12 text-emerald-500 opacity-90 transition-transform duration-500 group-hover:scale-110 relative z-10" />
                   ) : (
@@ -270,7 +279,6 @@ export default function Dashboard() {
 
                   <div className="pt-4 border-t border-white/5 mt-auto">
                     {isInstructor ? (
-                      // 🚀 INSTRUCTOR VIEW
                       <button
                         onClick={() => navigate(`/manage-course/${course.id}`)}
                         className="w-full text-center text-sm font-semibold text-slate-300 hover:text-white transition-colors duration-150 py-2.5 bg-white/5 rounded-lg hover:bg-white/10"
@@ -278,7 +286,6 @@ export default function Dashboard() {
                         Manage Course
                       </button>
                     ) : course.is_enrolled ? (
-                      // 🚀 STUDENT VIEW: ENROLLED (Show Progress Bar)
                       <div className="w-full flex flex-col gap-3">
                         <div className="flex justify-between items-center text-xs font-semibold">
                           <span className="text-slate-400">Progress</span>
@@ -292,14 +299,12 @@ export default function Dashboard() {
                             {course.progress_percentage}%
                           </span>
                         </div>
-                        {/* The animated bar */}
                         <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
                           <div
                             className={`${course.progress_percentage === 100 ? "bg-emerald-500" : "bg-indigo-500"} h-1.5 rounded-full transition-all duration-1000 ease-out`}
                             style={{ width: `${course.progress_percentage}%` }}
                           ></div>
                         </div>
-                        {/* Dynamic Button */}
                         <button
                           onClick={() => navigate(`/learn/${course.id}`)}
                           className={`w-full flex justify-center items-center gap-2 text-sm font-semibold transition-colors duration-150 py-2.5 rounded-lg mt-1 border ${
@@ -321,7 +326,6 @@ export default function Dashboard() {
                         </button>
                       </div>
                     ) : (
-                      // 🚀 STUDENT VIEW: NOT ENROLLED
                       <button
                         onClick={() => handleEnroll(course.id)}
                         className="w-full flex justify-center items-center gap-2 text-sm font-semibold text-indigo-400 hover:text-white transition-colors duration-150 py-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg hover:bg-indigo-500 hover:border-indigo-500 shadow-sm"

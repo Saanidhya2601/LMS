@@ -818,6 +818,88 @@ app.post(
     }
   },
 );
+
+// =========================================================
+// 👤 USER PROFILE & SETTINGS ROUTES
+// =========================================================
+
+// GET: Fetch current user's profile data
+app.get(
+  "/api/users/profile",
+  authenticateToken,
+  async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const user = await prisma.users.findUnique({
+        where: { id: req.user.id },
+        select: {
+          id: true,
+          full_name: true,
+          email: true,
+          role: true,
+          created_at: true,
+        },
+      });
+
+      if (!user) {
+        res.status(404).json({ success: false, message: "User not found" });
+        return;
+      }
+
+      res.json({ success: true, data: user });
+    } catch (error) {
+      console.error("PROFILE FETCH ERROR:", error);
+      res
+        .status(500)
+        .json({ success: false, error: "Failed to fetch profile" });
+    }
+  },
+);
+
+// PUT: Update user's name and email
+app.put(
+  "/api/users/profile",
+  authenticateToken,
+  async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const { full_name, email } = req.body;
+
+      // Make sure the email isn't already taken by someone else
+      const existingUser = await prisma.users.findUnique({ where: { email } });
+      if (existingUser && existingUser.id !== req.user.id) {
+        res
+          .status(400)
+          .json({
+            success: false,
+            message: "Email is already in use by another account.",
+          });
+        return;
+      }
+
+      const updatedUser = await prisma.users.update({
+        where: { id: req.user.id },
+        data: { full_name, email },
+        select: {
+          id: true,
+          full_name: true,
+          email: true,
+          role: true,
+        },
+      });
+
+      res.json({
+        success: true,
+        message: "Profile updated successfully",
+        data: updatedUser,
+      });
+    } catch (error) {
+      console.error("PROFILE UPDATE ERROR:", error);
+      res
+        .status(500)
+        .json({ success: false, error: "Failed to update profile" });
+    }
+  },
+);
+
 app.listen(PORT, () => {
   console.log(`Server is running live on http://localhost:${PORT}`);
 });
