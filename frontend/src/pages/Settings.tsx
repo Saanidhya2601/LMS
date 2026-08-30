@@ -107,18 +107,18 @@ export default function Settings() {
     <div className="min-h-screen bg-slate-950 text-slate-300 font-sans selection:bg-indigo-500/30 pb-20">
       {/* Navbar */}
       <nav className="bg-slate-900/60 backdrop-blur-md border-b border-white/10 px-6 py-4 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto flex items-center gap-4">
+        <div className="max-w-4xl mx-auto flex items-center gap-6">
           <button
             onClick={() => navigate("/dashboard")}
-            className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+            className="p-2.5 mr-2 bg-white/5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <div className="flex items-center gap-3">
-            <div className="bg-indigo-500/20 p-2 rounded-lg border border-indigo-500/20">
+          <div className="flex items-center gap-4">
+            <div className="bg-indigo-500/20 p-2.5 rounded-lg border border-indigo-500/20">
               <User className="text-indigo-400 h-5 w-5" />
             </div>
-            <h1 className="text-xl font-bold text-white tracking-tight">
+            <h1 className="text-2xl font-bold text-white tracking-tight">
               Account Settings
             </h1>
           </div>
