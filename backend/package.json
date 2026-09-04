@@ -1,36 +1,24 @@
 {
-  "name": "lms",
+  "name": "backend",
   "version": "1.0.0",
-  "description": "Backend API for the Online Learning Platform",
-  "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "prisma generate --schema=../prisma/schema.prisma",
+    "build": "prisma generate",
     "start": "node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "module",
+  "prisma": {
+    "schema": "prisma/schema.prisma"
+  },
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "bcrypt": "^6.0.0",
-    "cors": "^2.8.6",
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3"
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
   },
   "devDependencies": {
-    "@types/bcrypt": "^6.0.0",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^26.1.2",
-    "nodemon": "^3.1.14",
     "prisma": "^6.19.3",
-    "ts-node": "^10.9.2",
-    "tsx": "^4.23.9",
-    "typescript": "^7.0.2"
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
   }
 }
