@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, memo } from "react";
+import { useEffect, useRef, memo } from "react";
 
 const TWO_PI = Math.PI * 2;
 
@@ -84,7 +84,7 @@ const DotField = memo(function DotField({
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const reducedMotion =
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-    let resizeTimer: NodeJS.Timeout;
+    let resizeTimer: ReturnType<typeof setTimeout>;
 
     function resize() {
       clearTimeout(resizeTimer);

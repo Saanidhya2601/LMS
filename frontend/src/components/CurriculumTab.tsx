@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Plus,
   GripVertical,
@@ -226,16 +226,14 @@ export default function CurriculumTab({
                       <div className="flex gap-3 items-center border-l border-white/5 pl-4">
                         <div className="flex gap-2 mr-2">
                           {lesson.video_url && (
-                            <Video
-                              className="h-4 w-4 text-slate-500"
-                              title="Has Video"
-                            />
+                            <span title="Has Video">
+                              <Video className="h-4 w-4 text-slate-500" />
+                            </span>
                           )}
                           {lesson.content && (
-                            <FileText
-                              className="h-4 w-4 text-slate-500"
-                              title="Has Text Content"
-                            />
+                            <span title="Has Text Content">
+                              <FileText className="h-4 w-4 text-slate-500" />
+                            </span>
                           )}
                         </div>
 
@@ -437,7 +435,7 @@ export default function CurriculumTab({
             </div>
           </div>
         </div>
-      )}  
+      )}
     </div>
   );
 }

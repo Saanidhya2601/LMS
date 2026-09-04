@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import {
@@ -159,7 +159,9 @@ export default function CourseViewer() {
 
   // 🚀 4. Submit Quiz & Auto-complete lesson if passed
   const handleQuizSubmit = async () => {
-    if (!quiz) return;
+    // FIX: Added activeLesson null check for TypeScript
+    if (!quiz || !activeLesson) return;
+
     setIsSubmittingQuiz(true);
     try {
       const token = localStorage.getItem("token");
@@ -176,7 +178,7 @@ export default function CourseViewer() {
 
       // If they passed and haven't already marked the lesson complete, do it for them automatically!
       if (resultData.passed && !completedLessons.includes(activeLesson.id)) {
-        await toggleLessonComplete(activeLesson.id, true);
+        await toggleLessonComplete(activeLesson.id);
       }
     } catch (error) {
       alert("Failed to submit quiz. Please try again.");
@@ -189,11 +191,8 @@ export default function CourseViewer() {
     setSelectedAnswers((prev) => ({ ...prev, [questionId]: optionId }));
   };
 
-  // Modified toggle completion to accept a forced state (used for auto-complete on pass)
-  const toggleLessonComplete = async (
-    lessonId: string,
-    forceComplete?: boolean,
-  ) => {
+  // FIX: Removed unused forceComplete parameter
+  const toggleLessonComplete = async (lessonId: string) => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.post(

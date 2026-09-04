@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 const hexToRgb = (hex: string) => {
   const clean = hex.replace("#", "").trim();
@@ -108,7 +108,7 @@ export default function ParticleText({
   fontSize = "clamp(2.25rem, 6vw, 3.75rem)",
   fontWeight = 800,
   fontFamily = "inherit",
-  glow = true,
+  glow = false,
 }: ParticleTextProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -342,7 +342,7 @@ export default function ParticleText({
         offscreen.height,
       );
       const targets = [];
-      const step = Math.max(2, Math.floor(density));
+      const step = Math.max(4, Math.floor(density));
 
       for (let y = 0; y < offscreen.height; y += step) {
         for (let x = 0; x < offscreen.width; x += step) {
@@ -359,7 +359,7 @@ export default function ParticleText({
 
       const maxParticles = Math.max(
         900,
-        Math.min(5200, Math.floor((width * height) / 90)),
+        Math.min(2500, Math.floor((width * height) / 120)),
       );
       const stride = Math.max(1, Math.ceil(targets.length / maxParticles));
       const baseRgb = hexToRgb(color);
