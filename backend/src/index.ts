@@ -31,7 +31,6 @@ app.get(
       const role = req.user.role;
 
       if (role === "instructor") {
-        // Instructors see only their own courses
         const courses = await prisma.courses.findMany({
           where: { instructor_id: userId },
           orderBy: { created_at: "desc" },
@@ -48,7 +47,6 @@ app.get(
         });
         res.json({ success: true, data: courses });
       } else {
-        // Students see all published courses, PLUS their specific progress
         const courses = await prisma.courses.findMany({
           where: { status: "published" },
           orderBy: { created_at: "desc" },
@@ -61,7 +59,6 @@ app.get(
             users: {
               select: { full_name: true },
             },
-            // 🚀 Fetch the student's enrollment data if it exists
             enrollments: {
               where: { user_id: userId },
               select: { progress_percentage: true, status: true },
@@ -69,7 +66,6 @@ app.get(
           },
         });
 
-        // Map the data to make it clean for the frontend
         const formattedCourses = courses.map((course) => {
           const enrollment = course.enrollments[0];
           return {
@@ -79,7 +75,7 @@ app.get(
               ? Number(enrollment.progress_percentage)
               : 0,
             enrollment_status: enrollment ? enrollment.status : null,
-            enrollments: undefined, // Remove the raw array from the response
+            enrollments: undefined,
           };
         });
 
@@ -102,8 +98,9 @@ app.get(
   authenticateToken,
   async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const course = await prisma.courses.findUnique({
-        where: { id: req.params.id },
+      const courseId = req.params.id as string;
+      const course: any = await prisma.courses.findUnique({
+        where: { id: courseId },
         select: {
           id: true,
           title: true,
@@ -192,7 +189,7 @@ app.put(
   requireRole("instructor"),
   async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const courseId = req.params.id;
+      const courseId = req.params.id as string;
       const { title, slug, description, category, level, status } = req.body;
 
       const existingCourse = await prisma.courses.findUnique({
@@ -237,7 +234,7 @@ app.delete(
   requireRole("instructor"),
   async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const courseId = req.params.id;
+      const courseId = req.params.id as string;
 
       const course = await prisma.courses.findUnique({
         where: { id: courseId },
@@ -277,7 +274,7 @@ app.post(
   requireRole("instructor"),
   async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const { courseId } = req.params;
+      const courseId = req.params.courseId as string;
       const { title, order } = req.body;
 
       const course = await prisma.courses.findUnique({
@@ -311,7 +308,7 @@ app.post(
   requireRole("instructor"),
   async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const { moduleId } = req.params;
+      const moduleId = req.params.moduleId as string;
       const { title, video_url, content, order } = req.body;
 
       const newLesson = await prisma.lessons.create({
@@ -334,8 +331,9 @@ app.delete(
   requireRole("instructor"),
   async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      await prisma.lessons.deleteMany({ where: { module_id: req.params.id } });
-      await prisma.modules.delete({ where: { id: req.params.id } });
+      const moduleId = req.params.id as string;
+      await prisma.lessons.deleteMany({ where: { module_id: moduleId } });
+      await prisma.modules.delete({ where: { id: moduleId } });
       res.json({ success: true, message: "Module deleted" });
     } catch (error) {
       res.status(500).json({ success: false, error: (error as Error).message });
@@ -350,7 +348,8 @@ app.delete(
   requireRole("instructor"),
   async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      await prisma.lessons.delete({ where: { id: req.params.id } });
+      const lessonId = req.params.id as string;
+      await prisma.lessons.delete({ where: { id: lessonId } });
       res.json({ success: true, message: "Lesson deleted" });
     } catch (error) {
       res.status(500).json({ success: false, error: (error as Error).message });
@@ -365,7 +364,7 @@ app.post(
   requireRole("student"),
   async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const { courseId } = req.params;
+      const courseId = req.params.courseId as string;
       const studentId = req.user.id;
 
       const enrollment = await prisma.enrollments.create({
@@ -395,7 +394,7 @@ app.get(
   requireRole("instructor"),
   async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const { courseId } = req.params;
+      const courseId = req.params.courseId as string;
 
       const course = await prisma.courses.findUnique({
         where: { id: courseId },
@@ -439,10 +438,10 @@ app.post(
   requireRole("student"),
   async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const { lessonId } = req.params;
+      const lessonId = req.params.lessonId as string;
       const userId = req.user.id;
 
-      const lesson = await prisma.lessons.findUnique({
+      const lesson: any = await prisma.lessons.findUnique({
         where: { id: lessonId },
         include: { module: true },
       });
@@ -452,7 +451,7 @@ app.post(
         return;
       }
 
-      const courseId = lesson.module?.course_id;
+      const courseId = lesson.module?.course_id || lesson.Modules?.course_id;
 
       const enrollment = await prisma.enrollments.findFirst({
         where: {
@@ -469,12 +468,10 @@ app.post(
         return;
       }
 
-      const existingProgress = await prisma.lessonProgress.findUnique({
+      const existingProgress = await prisma.lessonProgress.findFirst({
         where: {
-          enrollment_id_lesson_id: {
-            enrollment_id: enrollment.id,
-            lesson_id: lessonId,
-          },
+          enrollment_id: enrollment.id,
+          lesson_id: lessonId,
         },
       });
 
@@ -557,7 +554,7 @@ app.get(
   requireRole("student"),
   async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const { courseId } = req.params;
+      const courseId = req.params.courseId as string;
       const userId = req.user.id;
 
       // 1. Find the specific enrollment
@@ -587,6 +584,7 @@ app.get(
     }
   },
 );
+
 // ---------------------------------------------------------
 // GET: Instructor Analytics Dashboard
 // ---------------------------------------------------------
@@ -598,7 +596,6 @@ app.get(
     try {
       const instructorId = req.user.id;
 
-      // 1. Fetch all courses by this instructor, including their enrollments
       const courses = await prisma.courses.findMany({
         where: { instructor_id: instructorId },
         include: {
@@ -615,7 +612,6 @@ app.get(
       let totalProgressSum = 0;
       let completedEnrollments = 0;
 
-      // 2. Calculate stats per course & aggregate total stats
       const courseStats = courses.map((course) => {
         const enrollmentsCount = course.enrollments.length;
         totalEnrollments += enrollmentsCount;
@@ -648,7 +644,6 @@ app.get(
         };
       });
 
-      // 3. Final Overall Calculations
       const overallAvgProgress =
         totalEnrollments > 0
           ? (totalProgressSum / totalEnrollments).toFixed(1)
@@ -674,6 +669,7 @@ app.get(
     }
   },
 );
+
 // 1. POST: Create a Quiz (Instructors only)
 app.post(
   "/api/lessons/:lessonId/quiz",
@@ -681,10 +677,9 @@ app.post(
   requireRole("instructor"),
   async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const { lessonId } = req.params;
+      const lessonId = req.params.lessonId as string;
       const { pass_score, questions } = req.body;
 
-      // Check if a quiz already exists and delete it (Allows instructors to overwrite)
       const existingQuiz = await prisma.quizzes.findUnique({
         where: { lesson_id: lessonId },
       });
@@ -693,11 +688,10 @@ app.post(
         await prisma.quizzes.delete({ where: { id: existingQuiz.id } });
       }
 
-      // Create the new quiz with all its nested questions and options!
       const newQuiz = await prisma.quizzes.create({
         data: {
           lesson_id: lessonId,
-          pass_score: pass_score || 80, // Default passing grade is 80%
+          pass_score: pass_score || 80,
           questions: {
             create: questions.map((q: any) => ({
               text: q.text,
@@ -727,9 +721,9 @@ app.get(
   authenticateToken,
   async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const { lessonId } = req.params;
+      const lessonId = req.params.lessonId as string;
 
-      const quiz = await prisma.quizzes.findUnique({
+      const quiz: any = await prisma.quizzes.findUnique({
         where: { lesson_id: lessonId },
         include: { questions: { include: { options: true } } },
       });
@@ -739,16 +733,14 @@ app.get(
         return;
       }
 
-      // 🚨 ANTI-CHEAT SYSTEM: If a student requests the quiz, strip out the answers!
       if (req.user.role === "student") {
         const sanitizedQuiz = {
           ...quiz,
-          questions: quiz.questions.map((q) => ({
+          questions: (quiz.questions || []).map((q: any) => ({
             ...q,
-            options: q.options.map((o) => ({
+            options: (q.options || []).map((o: any) => ({
               id: o.id,
               text: o.text,
-              // Notice we purposely DO NOT send `is_correct` back to the student!
             })),
           })),
         };
@@ -756,7 +748,6 @@ app.get(
         return;
       }
 
-      // Instructors get the full payload (so they can edit it later)
       res.json({ success: true, data: quiz });
     } catch (error) {
       res.status(500).json({ success: false, error: (error as Error).message });
@@ -771,10 +762,10 @@ app.post(
   requireRole("student"),
   async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const { quizId } = req.params;
-      const { answers } = req.body; // An array of Option IDs the student selected
+      const quizId = req.params.quizId as string;
+      const { answers } = req.body;
 
-      const quiz = await prisma.quizzes.findUnique({
+      const quiz: any = await prisma.quizzes.findUnique({
         where: { id: quizId },
         include: { questions: { include: { options: true } } },
       });
@@ -785,18 +776,18 @@ app.post(
       }
 
       let correctCount = 0;
-      const totalQuestions = quiz.questions.length;
+      const questionsList = quiz.questions || [];
+      const totalQuestions = questionsList.length;
 
-      // Grade the test securely on the backend
-      quiz.questions.forEach((question) => {
-        const correctOption = question.options.find((o) => o.is_correct);
-        // If the student's answers array includes the correct option's ID, they got it right!
+      questionsList.forEach((question: any) => {
+        const correctOption = (question.options || []).find(
+          (o: any) => o.is_correct,
+        );
         if (correctOption && answers.includes(correctOption.id)) {
           correctCount++;
         }
       });
 
-      // Calculate the final score
       const score =
         totalQuestions > 0
           ? Math.round((correctCount / totalQuestions) * 100)
@@ -823,7 +814,6 @@ app.post(
 // 👤 USER PROFILE & SETTINGS ROUTES
 // =========================================================
 
-// GET: Fetch current user's profile data
 app.get(
   "/api/users/profile",
   authenticateToken,
@@ -855,7 +845,6 @@ app.get(
   },
 );
 
-// PUT: Update user's name and email
 app.put(
   "/api/users/profile",
   authenticateToken,
@@ -863,15 +852,12 @@ app.put(
     try {
       const { full_name, email } = req.body;
 
-      // Make sure the email isn't already taken by someone else
       const existingUser = await prisma.users.findUnique({ where: { email } });
       if (existingUser && existingUser.id !== req.user.id) {
-        res
-          .status(400)
-          .json({
-            success: false,
-            message: "Email is already in use by another account.",
-          });
+        res.status(400).json({
+          success: false,
+          message: "Email is already in use by another account.",
+        });
         return;
       }
 
@@ -900,6 +886,5 @@ app.put(
   },
 );
 
-app.listen(PORT, () => {
-  console.log(`Server is running live on http://localhost:${PORT}`);
-});
+// Keep this export for Vercel Serverless deployments
+export default app;
