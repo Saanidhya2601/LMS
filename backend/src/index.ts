@@ -496,7 +496,7 @@ app.post(
             lesson_id: lessonId,
             is_completed: true,
             completed_at: new Date(),
-          },
+          } as any,
         });
         isCompletedNow = true;
       }
