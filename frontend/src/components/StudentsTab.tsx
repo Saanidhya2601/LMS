@@ -1,5 +1,3 @@
-import { useState, useEffect } from "react";
-
 interface EnrolledStudent {
   id: string;
   created_at?: string;
