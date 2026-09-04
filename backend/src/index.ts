@@ -885,6 +885,11 @@ app.put(
     }
   },
 );
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Server is running live on http://localhost:${PORT}`);
+  });
+}
 
 // Keep this export for Vercel Serverless deployments
 export default app;
