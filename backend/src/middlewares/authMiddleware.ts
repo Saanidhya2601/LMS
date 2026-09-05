@@ -6,6 +6,9 @@ export interface AuthRequest extends Request {
   user?: any;
 }
 
+// Define the secret from your environment variables
+const secret = process.env.JWT_SECRET as string;
+
 export const authenticateToken = (
   req: AuthRequest,
   res: Response,
@@ -22,7 +25,7 @@ export const authenticateToken = (
     return; // Ensure we exit the function
   }
 
-  jwt.verify(token, process.env.JWT_SECRET as string, (err, user) => {
+  jwt.verify(token, secret, (err: any, user: any) => {
     if (err) {
       res
         .status(403)

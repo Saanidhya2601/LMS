@@ -470,7 +470,7 @@ app.post(
 
       const existingProgress = await prisma.lessonProgress.findFirst({
         where: {
-          enrollment_id: enrollment.id,
+          enrollementId: enrollment.id,
           lesson_id: lessonId,
         },
       });
@@ -480,22 +480,22 @@ app.post(
       if (existingProgress && existingProgress.is_completed) {
         await prisma.lessonProgress.update({
           where: { id: existingProgress.id },
-          data: { is_completed: false, completed_at: null },
+          data: { is_completed: false, completedAt: null },
         });
         isCompletedNow = false;
       } else if (existingProgress) {
         await prisma.lessonProgress.update({
           where: { id: existingProgress.id },
-          data: { is_completed: true, completed_at: new Date() },
+          data: { is_completed: true, completedAt: new Date() },
         });
         isCompletedNow = true;
       } else {
         await prisma.lessonProgress.create({
           data: {
-            enrollment_id: enrollment.id,
+            enrollementId: enrollment.id,
             lesson_id: lessonId,
             is_completed: true,
-            completed_at: new Date(),
+            completedAt: new Date(),
           } as any,
         });
         isCompletedNow = true;
@@ -511,7 +511,7 @@ app.post(
 
       const completedLessonsCount = await prisma.lessonProgress.count({
         where: {
-          enrollment_id: enrollment.id,
+          enrollementId: enrollment.id,
           is_completed: true,
         },
       });
@@ -528,7 +528,7 @@ app.post(
         data: {
           progress_percentage: percentage,
           status: percentage === 100 ? "completed" : "active",
-          completed_at: percentage === 100 ? new Date() : null,
+          completedAt: percentage === 100 ? new Date() : null,
         },
       });
 
@@ -567,10 +567,10 @@ app.get(
         return;
       }
 
-      // 2. Fetch completed lessons via the enrollment_id
+      // 2. Fetch completed lessons via the enrollementId
       const progress = await prisma.lessonProgress.findMany({
         where: {
-          enrollment_id: enrollment.id,
+          enrollementId: enrollment.id,
           is_completed: true,
         },
         select: { lesson_id: true },
