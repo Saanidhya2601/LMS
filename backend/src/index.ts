@@ -470,7 +470,7 @@ app.post(
 
       const existingProgress = await prisma.lessonProgress.findFirst({
         where: {
-          enrollment_id: enrollment.id,
+          user_id: userId,
           lesson_id: lessonId,
         },
       });
@@ -492,10 +492,10 @@ app.post(
       } else {
         await prisma.lessonProgress.create({
           data: {
-            enrollment_id: enrollment.id,
+            user_id: userId,
             lesson_id: lessonId,
             is_completed: true,
-          } as any,
+          },
         });
         isCompletedNow = true;
       }
@@ -510,8 +510,13 @@ app.post(
 
       const completedLessonsCount = await prisma.lessonProgress.count({
         where: {
-          enrollment_id: enrollment.id,
+          user_id: userId,
           is_completed: true,
+          lesson: {
+            module: {
+              course_id: courseId,
+            },
+          },
         },
       });
 
@@ -556,21 +561,16 @@ app.get(
       const courseId = req.params.courseId as string;
       const userId = req.user.id;
 
-      // 1. Find the specific enrollment
-      const enrollment = await prisma.enrollments.findFirst({
-        where: { user_id: userId, course_id: courseId },
-      });
-
-      if (!enrollment) {
-        res.json({ success: true, data: [] });
-        return;
-      }
-
-      // 2. Fetch completed lessons via the enrollment_id
+      // Fetch completed lessons via user_id and course relation
       const progress = await prisma.lessonProgress.findMany({
         where: {
-          enrollment_id: enrollment.id,
+          user_id: userId,
           is_completed: true,
+          lesson: {
+            module: {
+              course_id: courseId,
+            },
+          },
         },
         select: { lesson_id: true },
       });
@@ -884,6 +884,7 @@ app.put(
     }
   },
 );
+
 if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`Server is running live on http://localhost:${PORT}`);
