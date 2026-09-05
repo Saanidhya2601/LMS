@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "prisma generate && tsc",
+    "postinstall": "prisma generate",
+    "build": "echo 'Vercel handles TS compilation automatically'",
     "start": "node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
