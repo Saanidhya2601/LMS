@@ -890,3 +890,5 @@ if (!process.env.VERCEL) {
     console.log(`Server is running live on http://localhost:${PORT}`);
   });
 }
+
+export default app;
