@@ -3,6 +3,7 @@ import { Lock, Mail, User, GraduationCap, Presentation } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import DotField from "../components/DotField";
 import ParticleText from "../components/ParticleText";
+import { API_URL } from "../config";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -11,7 +12,6 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // 🚀 NEW: State to track which role the user selects!
   const [role, setRole] = useState<"student" | "instructor">("student");
 
   const [message, setMessage] = useState("");
@@ -31,20 +31,17 @@ export default function Register() {
 
     setLoading(true);
     try {
-      // 1. Create the Account (Now sending the selected role!)
-      const registerResponse = await fetch(
-        "http://localhost:5000/api/auth/register",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            full_name: name,
-            email,
-            password,
-            role: role, // Dynamic role!
-          }),
-        },
-      );
+      // 1. Create the Account
+      const registerResponse = await fetch(`${API_URL}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          full_name: name,
+          email,
+          password,
+          role: role,
+        }),
+      });
 
       let registerData: { message?: string } = {};
       try {
@@ -65,14 +62,11 @@ export default function Register() {
       setMessage(`Account created! Logging you in as an ${role}...`);
       setIsError(false);
 
-      const loginResponse = await fetch(
-        "http://localhost:5000/api/auth/login",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        },
-      );
+      const loginResponse = await fetch(`${API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
       let loginData: { token?: string; user?: any } = {};
       try {
@@ -80,13 +74,11 @@ export default function Register() {
       } catch {}
 
       if (loginResponse.ok && loginData.token && loginData.user) {
-        // THE VAULT
         localStorage.setItem("token", loginData.token);
         localStorage.setItem("user", JSON.stringify(loginData.user));
 
         setMessage("Welcome! Loading your dashboard...");
 
-        // 3. Teleport to the Dashboard
         setTimeout(() => {
           navigate("/dashboard");
         }, 1000);
@@ -117,7 +109,7 @@ export default function Register() {
 
         <div className="w-full max-w-md flex flex-col items-center">
           <form onSubmit={handleSignup} className="w-full space-y-5">
-            {/* 🚀 NEW: Role Selector UI */}
+            {/* Role Selector UI */}
             <div className="flex gap-4 mb-4">
               <button
                 type="button"

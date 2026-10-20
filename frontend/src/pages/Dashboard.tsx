@@ -13,6 +13,7 @@ import {
   BarChart3,
   Settings,
 } from "lucide-react";
+import { API_URL } from "../config";
 
 interface Course {
   id: string;
@@ -52,7 +53,7 @@ export default function Dashboard() {
         return;
       }
       try {
-        const response = await axios.get("http://localhost:5000/api/courses", {
+        const response = await axios.get(`${API_URL}/api/courses`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setCourses(response.data.data);
@@ -78,11 +79,9 @@ export default function Dashboard() {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.post(
-        "http://localhost:5000/api/courses",
-        formData,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      const response = await axios.post(`${API_URL}/api/courses`, formData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       setCourses([response.data.data, ...courses]);
       setIsModalOpen(false);
@@ -108,7 +107,7 @@ export default function Dashboard() {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:5000/api/courses/${courseId}`, {
+      await axios.delete(`${API_URL}/api/courses/${courseId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setCourses(courses.filter((course) => course.id !== courseId));
@@ -122,7 +121,7 @@ export default function Dashboard() {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        `http://localhost:5000/api/courses/${courseId}/enroll`,
+        `${API_URL}/api/courses/${courseId}/enroll`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
