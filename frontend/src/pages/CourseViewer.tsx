@@ -13,6 +13,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import axios from "axios";
+import { API_URL } from "../config"; // 🚀 Added import
 
 // --- Types ---
 interface Lesson {
@@ -90,7 +91,7 @@ export default function CourseViewer() {
       }
       try {
         const response = await axios.get(
-          `http://localhost:5000/api/courses/${courseId}`,
+          `${API_URL}/api/courses/${courseId}`, // 🚀 Fixed URL
           { headers: { Authorization: `Bearer ${token}` } },
         );
         const foundCourse = response.data.data;
@@ -115,7 +116,7 @@ export default function CourseViewer() {
       try {
         const token = localStorage.getItem("token");
         const response = await axios.get(
-          `http://localhost:5000/api/courses/${courseId}/progress`,
+          `${API_URL}/api/courses/${courseId}/progress`, // 🚀 Fixed URL
           { headers: { Authorization: `Bearer ${token}` } },
         );
         if (response.data.success) {
@@ -141,7 +142,7 @@ export default function CourseViewer() {
       try {
         const token = localStorage.getItem("token");
         const response = await axios.get(
-          `http://localhost:5000/api/lessons/${activeLesson.id}/quiz`,
+          `${API_URL}/api/lessons/${activeLesson.id}/quiz`, // 🚀 Fixed URL
           { headers: { Authorization: `Bearer ${token}` } },
         );
         if (response.data.data) {
@@ -159,16 +160,15 @@ export default function CourseViewer() {
 
   // 🚀 4. Submit Quiz & Auto-complete lesson if passed
   const handleQuizSubmit = async () => {
-    // FIX: Added activeLesson null check for TypeScript
     if (!quiz || !activeLesson) return;
 
     setIsSubmittingQuiz(true);
     try {
       const token = localStorage.getItem("token");
-      const answerArray = Object.values(selectedAnswers); // Flatten map to array of Option IDs
+      const answerArray = Object.values(selectedAnswers);
 
       const response = await axios.post(
-        `http://localhost:5000/api/quizzes/${quiz.id}/submit`,
+        `${API_URL}/api/quizzes/${quiz.id}/submit`, // 🚀 Fixed URL
         { answers: answerArray },
         { headers: { Authorization: `Bearer ${token}` } },
       );
@@ -191,12 +191,11 @@ export default function CourseViewer() {
     setSelectedAnswers((prev) => ({ ...prev, [questionId]: optionId }));
   };
 
-  // FIX: Removed unused forceComplete parameter
   const toggleLessonComplete = async (lessonId: string) => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.post(
-        `http://localhost:5000/api/lessons/${lessonId}/progress`,
+        `${API_URL}/api/lessons/${lessonId}/progress`, // 🚀 Fixed URL
         {},
         { headers: { Authorization: `Bearer ${token}` } },
       );

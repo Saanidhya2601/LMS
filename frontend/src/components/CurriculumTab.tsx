@@ -10,6 +10,7 @@ import {
   PlusCircle,
 } from "lucide-react";
 import axios from "axios";
+import { API_URL } from "../config"; // 🚀 Added import
 
 interface Lesson {
   id: string;
@@ -126,7 +127,7 @@ export default function CurriculumTab({
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        `http://localhost:5000/api/lessons/${activeLessonId}/quiz`,
+        `${API_URL}/api/lessons/${activeLessonId}/quiz`, // 🚀 Fixed URL
         quizData,
         { headers: { Authorization: `Bearer ${token}` } },
       );

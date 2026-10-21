@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
+import { API_URL } from "../config"; // 🚀 Added import
 
 interface UserProfile {
   id: string;
@@ -42,7 +43,7 @@ export default function Settings() {
 
       try {
         const response = await axios.get(
-          "http://localhost:5000/api/users/profile",
+          `${API_URL}/api/users/profile`, // 🚀 Fixed URL
           {
             headers: { Authorization: `Bearer ${token}` },
           },
@@ -70,7 +71,7 @@ export default function Settings() {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.put(
-        "http://localhost:5000/api/users/profile",
+        `${API_URL}/api/users/profile`, // 🚀 Fixed URL
         { full_name: fullName, email },
         { headers: { Authorization: `Bearer ${token}` } },
       );

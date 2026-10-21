@@ -9,6 +9,7 @@ import {
   TrendingUp,
   BarChart3,
 } from "lucide-react";
+import { API_URL } from "../config"; // 🚀 Added import
 
 interface AnalyticsData {
   overview: {
@@ -37,7 +38,7 @@ export default function Analytics() {
       try {
         const token = localStorage.getItem("token");
         const response = await axios.get(
-          "http://localhost:5000/api/instructor/analytics",
+          `${API_URL}/api/instructor/analytics`, // 🚀 Fixed URL
           { headers: { Authorization: `Bearer ${token}` } },
         );
         setData(response.data.data);

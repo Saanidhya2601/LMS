@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { BookOpen, Settings, Users, ArrowLeft, X } from "lucide-react";
 import axios from "axios";
+import { API_URL } from "../config"; // 🚀 Added import
 
 // 🚀 Import our newly sliced components!
 import CurriculumTab from "../components/CurriculumTab";
@@ -92,7 +93,7 @@ export default function ManageCourse() {
 
       try {
         const response = await axios.get(
-          `http://localhost:5000/api/courses/${courseId}`,
+          `${API_URL}/api/courses/${courseId}`, // 🚀 Fixed URL
           {
             headers: { Authorization: `Bearer ${token}` },
           },
@@ -128,7 +129,7 @@ export default function ManageCourse() {
         try {
           const token = localStorage.getItem("token");
           const response = await axios.get(
-            `http://localhost:5000/api/courses/${courseId}/students`,
+            `${API_URL}/api/courses/${courseId}/students`, // 🚀 Fixed URL
             {
               headers: { Authorization: `Bearer ${token}` },
             },
@@ -151,7 +152,7 @@ export default function ManageCourse() {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.put(
-        `http://localhost:5000/api/courses/${courseId}`,
+        `${API_URL}/api/courses/${courseId}`, // 🚀 Fixed URL
         formData,
         { headers: { Authorization: `Bearer ${token}` } },
       );
@@ -175,7 +176,7 @@ export default function ManageCourse() {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.post(
-        `http://localhost:5000/api/courses/${courseId}/modules`,
+        `${API_URL}/api/courses/${courseId}/modules`, // 🚀 Fixed URL
         { title: newModuleTitle, order: modules.length + 1 },
         { headers: { Authorization: `Bearer ${token}` } },
       );
@@ -195,7 +196,8 @@ export default function ManageCourse() {
     if (!isConfirmed) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:5000/api/modules/${moduleId}`, {
+      await axios.delete(`${API_URL}/api/modules/${moduleId}`, {
+        // 🚀 Fixed URL
         headers: { Authorization: `Bearer ${token}` },
       });
       setModules(modules.filter((mod) => mod.id !== moduleId));
@@ -213,7 +215,7 @@ export default function ManageCourse() {
       const parentModule = modules.find((m) => m.id === activeModuleId);
       const nextOrder = (parentModule?.lessons?.length || 0) + 1;
       const response = await axios.post(
-        `http://localhost:5000/api/modules/${activeModuleId}/lessons`,
+        `${API_URL}/api/modules/${activeModuleId}/lessons`, // 🚀 Fixed URL
         { ...lessonFormData, order: nextOrder },
         { headers: { Authorization: `Bearer ${token}` } },
       );
@@ -245,7 +247,8 @@ export default function ManageCourse() {
     if (!isConfirmed) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:5000/api/lessons/${lessonId}`, {
+      await axios.delete(`${API_URL}/api/lessons/${lessonId}`, {
+        // 🚀 Fixed URL
         headers: { Authorization: `Bearer ${token}` },
       });
       setModules(
