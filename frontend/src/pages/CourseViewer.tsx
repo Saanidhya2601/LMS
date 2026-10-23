@@ -212,7 +212,7 @@ export default function CourseViewer() {
 
   const getEmbedUrl = (url: string) => {
     if (!url) return null;
-    const videoIdMatch = url.match(
+    const videoIdMatch = url.match( 
       /(?:youtu\.be\/|youtube\.com\/(?:.*v=|.*\/|.*embed\/))([^&?]*)/,
     );
     return videoIdMatch
